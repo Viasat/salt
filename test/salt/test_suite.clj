@@ -315,10 +315,10 @@
          ""
          false)
 
-  (check "Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the REQUIRE- keyword. NOTE: it is not possible to specify general predicates here."
+  (check "Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the ALLOW- keyword. NOTE: it is not possible to specify general predicates here."
          ['(VARIABLE messages leaders)]
-         '(REQUIRE- [messages []
-                     leaders #{}])
+         '(ALLOW- [messages []
+                   leaders #{}])
          true
          "/\\  messages = << >>\n/\\  leaders = {}"
          ""
@@ -1029,4 +1029,3 @@ multi line comment")
                           (string/replace "@example-tla" (slurp "resources/tla/TwoPhase.tla.expected"))))))
 
 ;; (run-tests)
-

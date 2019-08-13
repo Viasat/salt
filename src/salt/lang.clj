@@ -94,23 +94,25 @@
 (defn- ALLOW-f [[x v]]
   `(~'ALLOW-1 ~x ~v))
 
+(defn- prime-variable? [x]
+  (.endsWith (name x) "'"))
+
 (defmacro ALLOW- [bindings]
-  `(let [success# (if (vector? *success*)
-                    (first *success*)
-                    (= (rand-int 2) 0))]
-     (when success#
-       (and ~@(map ALLOW-f (partition 2 bindings))))
-     success#))
+  (if (every? true? (map (comp prime-variable? first) (partition 2 bindings)))
+    `(let [success# (if (vector? *success*)
+                      (first *success*)
+                      (= (rand-int 2) 0))]
+       (when success#
+         (and ~@(map ALLOW-f (partition 2 bindings))))
+       success#)
+    `(do (and ~@(map ALLOW-f (partition 2 bindings)))
+         true)))
 
 (def ^:dynamic *success*)
 
 (defmacro atomic- [& body]
   `(binding [*success* [(= (rand-int 2) 0)]]
      ~@body))
-
-(defmacro REQUIRE- [bindings]
-  `(do (and ~@(map ALLOW-f (partition 2 bindings)))
-       true))
 
 (defmacro CHOOSE [[x s] body]
   `(first (filter (fn [~x]

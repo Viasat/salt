@@ -90,7 +90,6 @@ Identifiers that were added specifically to support transpiling, they are neithe
 
 ```ALLOW-```
 ```atomic-```
-```REQUIRE-```
 ```CHANGED-```
 ```line-```
 ```always-```

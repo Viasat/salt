@@ -90,7 +90,6 @@ Identifiers that were added specifically to support transpiling, they are neithe
 
 ```ALLOW-```
 ```atomic-```
-```REQUIRE-```
 ```CHANGED-```
 ```line-```
 ```always-```
@@ -369,11 +368,11 @@ Define the variables that make up the state:
 | code | `(VARIABLE messages leaders)` | `VARIABLE messages, leaders`<br>` `<br>` ` |
 | result |   |   |
 
-Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the REQUIRE- keyword. NOTE: it is not possible to specify general predicates here.
+Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the ALLOW- keyword. NOTE: it is not possible to specify general predicates here.
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(REQUIRE- [messages [] leaders #{}])` | `/\  messages = << >>`<br>`/\  leaders = {}` |
+| code | `(ALLOW- [messages [] leaders #{}])` | `/\  messages = << >>`<br>`/\  leaders = {}` |
 | result | `true` |   |
 
 To indicate allowed state transitions reference variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the ALLOW- keyword. NOTE: it is not possible to specify general predicates here.
@@ -863,11 +862,11 @@ https://github.com/tlaplus/Examples/blob/master/specifications/transaction_commi
        (subset? msgs Message)))
 
 (defn TPInit []
-  (REQUIRE- [rmState (fm- [rm RM]
-                          "working")
-             tmState "init"
-             tmPrepared #{}
-             msgs #{}]))
+  (ALLOW- [rmState (fm- [rm RM]
+                        "working")
+           tmState "init"
+           tmPrepared #{}
+           msgs #{}]))
 
 (defn TMRcvPrepared [rm]
   (and (= tmState "init")

@@ -78,10 +78,10 @@
 (line-)
 
 (defn Init []
-  (REQUIRE- [badGuyStatus "alive"
-             livingGoodGuys GoodGuys
-             log []
-             toDestroy -1]))
+  (ALLOW- [badGuyStatus "alive"
+           livingGoodGuys GoodGuys
+           log []
+           toDestroy -1]))
 
 (defn Next []
   (or

@@ -23,11 +23,11 @@ https://github.com/tlaplus/Examples/blob/master/specifications/transaction_commi
        (subset? msgs Message)))
 
 (defn TPInit []
-  (REQUIRE- [rmState (fm- [rm RM]
-                          "working")
-             tmState "init"
-             tmPrepared #{}
-             msgs #{}]))
+  (ALLOW- [rmState (fm- [rm RM]
+                        "working")
+           tmState "init"
+           tmPrepared #{}
+           msgs #{}]))
 
 (defn TMRcvPrepared [rm]
   (and (= tmState "init")

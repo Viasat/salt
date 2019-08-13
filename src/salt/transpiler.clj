@@ -331,10 +331,6 @@
          (map transpile)
          doall)))
 
-(defmethod transpile-list 'REQUIRE- [x]
-  (let [[_ & body] x]
-    (transpile (conj body 'ALLOW-))))
-
 (defmethod transpile-list 'CHANGED- [x]
   (let [[op vs] x]
     (unary-operator [op (state/get-base-variables-except vs)] "UNCHANGED")))
