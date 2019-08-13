@@ -1,0 +1,83 @@
+---------------------------- MODULE TwoPhase ----------------------------
+
+(*
+example spec ported from
+https://github.com/tlaplus/Examples/blob/master/specifications/transaction_commit/TwoPhase.tla
+*)
+CONSTANT RM
+
+VARIABLE rmState, tmState, tmPrepared, msgs
+
+Message == [type : {"Prepared"},
+            rm : RM] \union [type : { "Commit", "Abort" }]
+
+TPTypeOk == 
+    /\  rmState \in [RM -> { "committed", "prepared", "aborted", "working" }]
+    /\  tmState \in { "committed", "aborted", "init" }
+    /\  tmPrepared \subseteq RM
+    /\  msgs \subseteq Message
+
+TPInit == 
+    /\  rmState = [rm \in RM |-> "working"]
+    /\  tmState = "init"
+    /\  tmPrepared = {}
+    /\  msgs = {}
+
+TMRcvPrepared( rm ) ==
+    /\  tmState = "init"
+    /\  [type |-> "Prepared",
+         rm |-> rm] \in msgs
+    /\  tmPrepared' = tmPrepared \union {rm}
+    /\  UNCHANGED << rmState, tmState, msgs >>
+
+TMCommit == 
+    /\  tmState = "init"
+    /\  tmPrepared = RM
+    /\  tmState' = "committed"
+    /\  msgs' = msgs \union {[type |-> "Commit"]}
+    /\  UNCHANGED << rmState, tmPrepared >>
+
+TMAbort == 
+    /\  tmState = "init"
+    /\  tmState' = "aborted"
+    /\  msgs' = msgs \union {[type |-> "Abort"]}
+    /\  UNCHANGED << rmState, tmPrepared >>
+
+RMPrepare( rm ) ==
+    /\  rmState[rm] = "working"
+    /\  rmState' = [rmState EXCEPT ![rm] = "prepared"]
+    /\  msgs' = msgs \union {[type |-> "Prepared",
+                              rm |-> rm]}
+    /\  UNCHANGED << tmState, tmPrepared >>
+
+RMChooseToAbort( rm ) ==
+    /\  rmState[rm] = "working"
+    /\  rmState' = [rmState EXCEPT ![rm] = "aborted"]
+    /\  UNCHANGED << tmState, tmPrepared, msgs >>
+
+RMRcvCommitMsg( rm ) ==
+    /\  [type |-> "Commit"] \in msgs
+    /\  rmState' = [rmState EXCEPT ![rm] = "committed"]
+    /\  UNCHANGED << tmState, tmPrepared, msgs >>
+
+RMRcvAbortMsg( rm ) ==
+    /\  [type |-> "Abort"] \in msgs
+    /\  rmState' = [rmState EXCEPT ![rm] = "aborted"]
+    /\  UNCHANGED << tmState, tmPrepared, msgs >>
+
+TPNext == 
+    \/  TMCommit
+    \/  TMAbort
+    \/  \E rm \in RM :
+            \/  TMRcvPrepared(rm)
+            \/  RMPrepare(rm)
+            \/  RMChooseToAbort(rm)
+            \/  RMRcvCommitMsg(rm)
+            \/  RMRcvAbortMsg(rm)
+
+TPSpec == 
+    /\  TPInit
+    /\  [][TPNext]_<< rmState, tmState, tmPrepared, msgs >>
+
+
+=============================================================================

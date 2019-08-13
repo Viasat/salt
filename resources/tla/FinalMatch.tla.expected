@@ -1,0 +1,101 @@
+---------------------------- MODULE FinalMatch ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANT GoodGuys, Strong, Flight, HasArtifact
+
+ASSUME
+    /\  HasArtifact \in GoodGuys
+    /\  Strong \subseteq GoodGuys
+    /\  Flight \subseteq GoodGuys
+
+--------------------------------------------------------------------------------
+VARIABLE badGuyStatus, toDestroy, livingGoodGuys, log
+
+vars == << badGuyStatus, toDestroy, livingGoodGuys, log >>
+
+TypesOk == 
+    /\  badGuyStatus \in { "hasArtifact", "alive", "defeated", "retired" }
+    /\  livingGoodGuys \subseteq GoodGuys
+    /\  toDestroy \in (Nat \union {-1})
+
+--------------------------------------------------------------------------------
+BadGuyStatusFights == 
+    /\  badGuyStatus # "defeated"
+    /\  \E hero \in livingGoodGuys :
+            /\  livingGoodGuys' = livingGoodGuys \ {hero}
+            /\  IF  (hero = HasArtifact)
+                THEN 
+                    /\  badGuyStatus' = "hasArtifact"
+                    /\  log' = (Append((Append(log, << 
+                                        "BadGuyStatus defeats: ", hero >>)), 
+                                    << "BadGuyStatus has stone" >>))
+                    /\  UNCHANGED << toDestroy >>
+                ELSE 
+                    /\  log' = Append(log, << "BadGuyStatus defeats: ", hero >>)
+                    /\  UNCHANGED << badGuyStatus, toDestroy >>
+
+BadGuyStatusSnaps == 
+    /\  badGuyStatus = "hasArtifact"
+    /\  toDestroy = -1
+    /\  toDestroy' = (Cardinality( livingGoodGuys ) \div 2)
+    /\  log' = Append(log, << "BadGuyStatus snaps" >>)
+    /\  UNCHANGED << badGuyStatus, livingGoodGuys >>
+
+BadGuyStatusDestroys == 
+    /\  toDestroy > 0
+    /\  \E hero \in livingGoodGuys :
+            /\  toDestroy' = toDestroy - 1
+            /\  livingGoodGuys' = livingGoodGuys \ {hero}
+            /\  log' = Append(log, << "BadGuyStatus destroys: ", hero >>)
+            /\  UNCHANGED badGuyStatus
+
+BadGuyStatusRetires == 
+    /\  badGuyStatus = "hasArtifact"
+    /\  0 = toDestroy
+    /\  badGuyStatus' = "retired"
+    /\  log' = Append(log, << "BadGuyStatus retires" >>)
+    /\  UNCHANGED << toDestroy, livingGoodGuys >>
+
+BadGuyStatusDefeated == 
+    /\  badGuyStatus = "retired"
+    /\  \E hero1 \in livingGoodGuys :
+            /\  hero1 \in Strong
+            /\  \E hero2 \in livingGoodGuys :
+                    /\  hero2 \in Flight
+                    /\  badGuyStatus' = "defeated"
+                    /\  log' = Append(log, << "BadGuyStatus defeated by", 
+                                    hero1, hero2 >>)
+                    /\  UNCHANGED << toDestroy, livingGoodGuys >>
+
+--------------------------------------------------------------------------------
+Init == 
+    /\  badGuyStatus = "alive"
+    /\  livingGoodGuys = GoodGuys
+    /\  log = << >>
+    /\  toDestroy = -1
+
+Next == 
+    \/  BadGuyStatusFights
+    \/  BadGuyStatusSnaps
+    \/  BadGuyStatusDestroys
+    \/  BadGuyStatusRetires
+    \/  BadGuyStatusDefeated
+
+--------------------------------------------------------------------------------
+Spec == 
+    /\  Init
+    /\  [][Next]_vars
+    /\  WF_vars(BadGuyStatusFights)
+    /\  WF_vars(BadGuyStatusSnaps)
+    /\  WF_vars(BadGuyStatusDestroys)
+    /\  WF_vars(BadGuyStatusRetires)
+    /\  WF_vars(BadGuyStatusDefeated)
+
+End == 
+    \/  livingGoodGuys = {}
+    \/  badGuyStatus = "defeated"
+
+Termination == <>[](End)
+
+
+=============================================================================

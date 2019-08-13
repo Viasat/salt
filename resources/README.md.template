@@ -1,0 +1,181 @@
+# salt
+
+"S-expressions for Actions with Logic Temporal"
+
+An experimental tool to convert a subset of clojure into TLA+. Although it is experimental it has been used to produce real, useful TLA+ specifications.
+
+You might want to use this if you know Clojure and are writing TLA+ specifications. Specifically it provides:
+
+* an interactive REPL based authoring experience
+* facilities for automated unit tests of invariants and actions
+* automatic formatting of resulting TLA+ code
+* a mapping from TLA+ to Clojure concepts that may facilitate learning TLA+
+
+To use it:
+1. Write a specification using salt.
+2. Evaluate the salt specification in the REPL as part of the development process.
+3. Once it is ready to be run in the TLA+ Toolbox, invoke the salt transpiler to emit TLA+ code.
+4. Run the resulting TLA+ specification in the TLA+ Toolbox to assess the temporal properties of the specification.
+
+In your salt specification file require the salt language as:
+
+```(:require [salt.lang :refer :all])```
+
+Transpile a salt source file into a TLA+ file using an incantation like this:
+
+```(spit <tla+-file> (salt.transpiler/transpile-text (slurp <salt-file>)))```
+
+
+# Table of Contents
+
+ * [Language Identifiers](#language-identifiers)  
+ * [Clojure to TLA+ Concepts](#clojure-to-tla-concepts)
+ * [Docs](#docs)
+   * [Primitives](#primitives)
+   * [Code Structure](#code-structure)
+   * [Arithmetic](#arithmetic)
+   * [Specs](#specs)
+   * [Logic](#logic)
+   * [Temporal Logic](#temporal-logic)
+   * [Sets](#sets)
+   * [Vectors](#vectors)
+   * [Maps](#maps)
+   * [Maps As Records](#maps-as-records)
+   * [Maps As Tuples](#maps-as-tuples)
+   * [Functions](#functions)
+ * [Example Salt](#example-salt)
+ * [Example TLA+](#example-tla)
+
+# Language Identifiers
+
+The following identifiers are reserved for the salt language.
+
+Identifiers from the Clojure language:
+
+```ns```
+```require```
+```comment```
+```if```
+```let```
+```cond```
+```and```
+```or```
+```not```
+```expt```
+```difference```
+```union```
+```intersection```
+```subset?```
+```contains?```
+```select```
+```first```
+```rest```
+```into```
+```str```
+```count```
+```conj```
+```defn```
+```def```
+```fn```
+
+Identifiers from the Clojure language, whose semantics were modified to match TLA+:
+
+```mod*```
+```range*```
+```map*```
+```every?*```
+```get*```
+
+Identifiers that were added specifically to support transpiling, they are neither part of Clojure nor TLA+:
+
+```ALLOW-```
+```atomic-```
+```REQUIRE-```
+```CHANGED-```
+```line-```
+```always-```
+```eventually-```
+```leads-to-```
+```fm-```
+```defm-```
+```maps-```
+
+Identifiers from the TLA+ language:
+
+```CONSTANT```
+```ASSUME```
+```VARIABLE```
+```UNCHANGED```
+```==```
+```=>```
+```<=>```
+```=```
+```not=```
+```>```
+```<```
+```>=```
+```<=```
+```E```
+```A```
+```WF```
+```SF```
+```+```
+```-```
+```*```
+```div```
+```Nat```
+```X```
+```UNION```
+```SUBSET```
+```Cardinality```
+```CHOOSE```
+```SubSeq```
+```SelectSeq```
+```Seq```
+```EXCEPT```
+```DOMAIN```
+
+# Clojure to TLA Concepts
+
+| Clojure | Clojure example | TLA+ | TLA+ example |
+| --- | --- | --- | --- |
+| set | ```#{1 2}```| set | ```{1, 2}``` |
+| vector | ```[1 2]``` | tuple | ```<<1, 2>>``` |
+| map | ```{1 10 2 20}``` | function | ```(1 :> 10 @@ 2 :> 20)```|
+| map | ```{:a 10 :b 20}``` | record | ```[a \|-> 100, b \|-> 200]``` |
+| function | ```(defn Add [x y] (+ 1 2))```| operator | ```Add( x, y ) == x + y```|
+| lambda | ```(fn [x] (> x 2))``` | lambda in SelectSeq | ```LAMBDA  x: (x > 2)``` |
+| lambda | ```#(* 2 %)``` | lambda in Except| ```@ * 2``` |
+
+# Docs
+
+@docs
+
+
+# Example Salt
+The following is a full sample salt file:
+
+```
+@example-salt
+```
+
+# Example TLA
+The following is a full sample TLA+ output produced by the salt file above:
+
+```
+@example-tla
+```
+
+# Copyright
+
+Copyright (c) 2019, ViaSat Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, PUNITIVE, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
