@@ -369,14 +369,14 @@ Define the variables that make up the state:
 | code | `(VARIABLE messages leaders)` | `VARIABLE messages, leaders`<br>` `<br>` ` |
 | result |   |   |
 
-Initialize the values of the variables. This is an addition to TLA+ which does not have an equivalent of the REQUIRE- keyword.
+Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the REQUIRE- keyword. NOTE: it is not possible to specify general predicates here.
 
 |  | salt | tla+ |
 | --- | --- | --- |
 | code | `(REQUIRE- [messages [] leaders #{}])` | `/\  messages = << >>`<br>`/\  leaders = {}` |
 | result | `true` |   |
 
-To indicate changes to the variables reference a variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the ALLOW- keyword.
+To indicate allowed state transitions reference variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the ALLOW- keyword. NOTE: it is not possible to specify general predicates here.
 
 |  | salt | tla+ |
 | --- | --- | --- |
