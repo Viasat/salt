@@ -2,7 +2,7 @@
 
 "S-expressions for Actions with Logic Temporal"
 
-An experimental tool to convert a subset of clojure into TLA+. Although it is experimental it has been used to produce real, useful TLA+ specifications.
+An experimental tool to convert a subset of Clojure into TLA+. Although it is experimental it has been used to produce real, useful TLA+ specifications.
 
 You might want to use this if you know Clojure and are writing TLA+ specifications. Specifically it provides:
 
