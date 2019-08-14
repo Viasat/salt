@@ -759,6 +759,23 @@ line 3")
   (is (= "<< 1, 3 >> \\in (Seq( { 1, 4, 3, 2, 5 } ))"
          (transpiler/transpile-single-form '(every?* #{1 2 3 4 5} [1 3])))))
 
+;; test deterministic random numbers
+
+(deftest test-random
+  (with-rand-seed 99
+    (is (= [false true true true true true false true true true]
+           (repeatedly 10 #(ALLOW- [M' 100])))))
+
+  (with-rand-seed 98
+    (is (= [4 5 5 5 5 6 4 5 5 5]
+           (repeatedly 10 #(E [x #{1 2 3 4 5 6}]
+                              (> x 3))))))
+  (with-rand-seed 97
+    (is (= [3 3 5 5 5 5 4 2 6 5]
+           (repeatedly 10 #(do (E [x #{1 2 3 4 5 6}]
+                                  (ALLOW- [M' x]))
+                               M'))))))
+
 ;; test full specs
 
 (defn- expected-file-name [spec-name]

@@ -348,7 +348,7 @@ Operate on an item that exists in a set
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(E [x #{1 3 2}] x)` | `\\E x \\in { 1, 3, 2 } :`<br>`    x` |
+| code | `(E [x #{1 3 2}] true)` | `\\E x \\in { 1, 3, 2 } :`<br>`    TRUE` |
 | result |   |   |
 
 Specify something is true for all items in a set

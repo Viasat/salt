@@ -28,9 +28,32 @@
   `(every? #(= % true) (map (fn [~x]
                               ~body) ~s)))
 
+(def ^:dynamic *rand-seed-atom* (atom (rand-int Integer/MAX_VALUE)))
+
+(defmacro with-rand-seed [n & body]
+  `(binding [*rand-seed-atom* (atom ~n)]
+     ~@body))
+
+(defn rand-int* [n]
+  (let [r (Random. @*rand-seed-atom*)
+        result (.nextInt r n)
+        new-seed (.nextInt r Integer/MAX_VALUE)]
+    (reset! *rand-seed-atom* new-seed)
+    result))
+
+(defn rand-nth*
+  [coll]
+  (nth coll (rand-int* (count coll))))
+
 (defmacro E [[x s] body]
-  `(some #(= % true) (map (fn [~x]
-                            ~body) (shuffle ~s))))
+  `(let [f# (fn [~x]
+              ~body)
+         choices# (filter #(let [r# (f# %)]
+                             (when (true? r#)
+                               %)) ~s)]
+     (if (pos? (count choices#))
+       (rand-nth* choices#)
+       false)))
 
 (defmacro ASSUME [body]
   `(do (when (not ~body))
@@ -98,24 +121,11 @@
 (defn- prime-variable? [x]
   (.endsWith (name x) "'"))
 
-(def ^:dynamic *rand-seed-atom* (atom (rand-int Integer/MAX_VALUE)))
-
-(defmacro with-rand-seed [n & body]
-  `(binding [*rand-seed-atom* (atom ~n)]
-     ~@body))
-
-(defn next-rand [n]
-  (let [r (Random. @*rand-seed-atom*)
-        result (.nextInt r n)
-        new-seed (.nextInt r Integer/MAX_VALUE)]
-    (reset! *rand-seed-atom* new-seed)
-    result))
-
 (defmacro ALLOW- [bindings]
   (if (every? true? (map (comp prime-variable? first) (partition 2 bindings)))
     `(let [success# (if (vector? *success*)
                       (first *success*)
-                      (= (next-rand 2) 0))]
+                      (= (rand-int* 2) 0))]
        (when success#
          (and ~@(map ALLOW-f (partition 2 bindings))))
        success#)
@@ -125,7 +135,7 @@
 (def ^:dynamic *success*)
 
 (defmacro atomic- [& body]
-  `(binding [*success* [(= (next-rand 2) 0)]]
+  `(binding [*success* [(= (rand-int* 2) 0)]]
      ~@body))
 
 (defmacro CHOOSE [[x s] body]

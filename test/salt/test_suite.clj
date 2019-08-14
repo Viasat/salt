@@ -442,9 +442,9 @@ multi line comment")
 
   (check "Operate on an item that exists in a set"
          '(E [x #{1 2 3}]
-             x)
+             true)
          [:multi 1 2 3]
-         "\\E x \\in { 1, 3, 2 } :\n    x"
+         "\\E x \\in { 1, 3, 2 } :\n    TRUE"
          :?
          true)
 
