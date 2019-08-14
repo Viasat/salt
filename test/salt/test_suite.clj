@@ -3,6 +3,7 @@
             [clojure.string :as string]
             [clojure.test :refer :all]
             [salt.lang :refer :all]
+            [salt.main :as main]
             [salt.transpiler :as transpiler]
             [tlaplus.Integers :refer :all]
             [tlaplus.Sequences :refer :all]
@@ -1003,6 +1004,12 @@ multi line comment")
          "Work"
          ""
          false))
+
+(deftest test-main
+  (is (.startsWith
+       (with-out-str
+         (main/-main "src/TwoPhase.clj"))
+       "---------------------------- MODULE TwoPhase ----------------------------")))
 
 (defn produce-docs []
   (binding [*output-docs* true

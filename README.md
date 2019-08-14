@@ -21,15 +21,21 @@ In your salt specification file require the salt language as:
 
 ```(:require [salt.lang :refer :all])```
 
-Transpile a salt source file into a TLA+ file using an incantation like this:
+From the Clojure REPL, transpile a salt source file into a TLA+ file using an incantation like this:
 
-```(spit <tla+-file> (salt.transpiler/transpile-text (slurp <salt-file>)))```
+```(spit <tla+-filename> (salt.transpiler/transpile-text (slurp <salt-filename>)))```
 
+Alternatively, the salt transpiler can be invoked from the command line:
+
+```lein uberjar```
+
+```java -cp target/salt-0.0.1-standalone.jar clojure.main -m salt.main <salt-filename>```
 
 # Table of Contents
 
  * [Language Identifiers](#language-identifiers)  
  * [Clojure to TLA+ Concepts](#clojure-to-tla-concepts)
+ * [Standard Modules](#standard-modules)
  * [Docs](#docs)
    * [Primitives](#primitives)
    * [Code Structure](#code-structure)
@@ -145,6 +151,20 @@ Identifiers from the TLA+ language:
 | function | ```(defn Add [x y] (+ 1 2))```| operator | ```Add( x, y ) == x + y```|
 | lambda | ```(fn [x] (> x 2))``` | lambda in SelectSeq | ```LAMBDA  x: (x > 2)``` |
 | lambda | ```#(* 2 %)``` | lambda in Except| ```@ * 2``` |
+
+# Standard Modules
+
+Portions of some of the TLA+ standard modules have been implemented. They can be referenced from a salt file as follows:
+
+```
+  (:require [salt.lang :refer :all]
+            [tlaplus.FiniteSets :refer :all]
+            [tlaplus.Integers :refer :all]
+            [tlaplus.Naturals :refer :all]
+            [tlaplus.Sequences :refer :all])
+```
+
+The salt transpiler will detect these values in the salt source file and produce the corresponding EXTENDS statement in the TLA+ output.
 
 # Docs
 
