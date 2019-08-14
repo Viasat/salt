@@ -50,29 +50,31 @@
 (deftest test-atomic
   ;; without an atomic- wrapper, it is possible for one of the ALLOW- blocks to be applied but not
   ;; the other
-  (possible-results #{[nil nil]
-                      [101 nil]
-                      [nil 201]
-                      [101 201]}
-                    1000
-                    [M 100
-                     N 200]
-                    (do
-                      (ALLOW- [M' (inc M)])
-                      (ALLOW- [N' (inc N)])
-                      [M' N']))
+  (with-rand-seed 12346
+    (possible-results #{[nil nil]
+                        [101 nil]
+                        [nil 201]
+                        [101 201]}
+                      1000
+                      [M 100
+                       N 200]
+                      (do
+                        (ALLOW- [M' (inc M)])
+                        (ALLOW- [N' (inc N)])
+                        [M' N'])))
 
   ;; with the atomic- wrapper, either both are applied or neither
-  (possible-results #{[nil nil]
-                      [101 201]}
-                    1000
-                    [M 100
-                     N 200]
-                    (do
-                      (atomic-
-                       (ALLOW- [M' (inc M)])
-                       (ALLOW- [N' (inc N)]))
-                      [M' N'])))
+  (with-rand-seed 12346
+    (possible-results #{[nil nil]
+                        [101 201]}
+                      1000
+                      [M 100
+                       N 200]
+                      (do
+                        (atomic-
+                         (ALLOW- [M' (inc M)])
+                         (ALLOW- [N' (inc N)]))
+                        [M' N']))))
 
 (comment
   (transpiler/transpile '(VARIABLE M))

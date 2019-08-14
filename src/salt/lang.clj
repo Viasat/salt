@@ -2,7 +2,8 @@
   (:require [clojure.algo.generic.functor :refer [fmap]]
             [clojure.math.numeric-tower :as numeric-tower]
             [clojure.set :as set]
-            [clojure.string :as string]))
+            [clojure.string :as string])
+  (:import [java.util Random]))
 
 (defn- CONSTANT-f [x]
   (when (symbol? x)
@@ -97,11 +98,24 @@
 (defn- prime-variable? [x]
   (.endsWith (name x) "'"))
 
+(def ^:dynamic *rand-seed-atom* (atom (rand-int Integer/MAX_VALUE)))
+
+(defmacro with-rand-seed [n & body]
+  `(binding [*rand-seed-atom* (atom ~n)]
+     ~@body))
+
+(defn next-rand [n]
+  (let [r (Random. @*rand-seed-atom*)
+        result (.nextInt r n)
+        new-seed (.nextInt r Integer/MAX_VALUE)]
+    (reset! *rand-seed-atom* new-seed)
+    result))
+
 (defmacro ALLOW- [bindings]
   (if (every? true? (map (comp prime-variable? first) (partition 2 bindings)))
     `(let [success# (if (vector? *success*)
                       (first *success*)
-                      (= (rand-int 2) 0))]
+                      (= (next-rand 2) 0))]
        (when success#
          (and ~@(map ALLOW-f (partition 2 bindings))))
        success#)
@@ -111,7 +125,7 @@
 (def ^:dynamic *success*)
 
 (defmacro atomic- [& body]
-  `(binding [*success* [(= (rand-int 2) 0)]]
+  `(binding [*success* [(= (next-rand 2) 0)]]
      ~@body))
 
 (defmacro CHOOSE [[x s] body]
