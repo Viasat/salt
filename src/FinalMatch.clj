@@ -19,7 +19,7 @@
  livingGoodGuys
  log)
 
-(def vars VARS)
+(def vars VARS-)
 
 (defn TypesOk []
   (and (contains? #{"alive" "hasArtifact" "retired" "defeated"} badGuyStatus)

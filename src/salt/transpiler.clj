@@ -392,7 +392,7 @@
   (when (not (= 'ns (state/context)))
     (if (= x 'Nat)
       (emit "Nat")
-      (if (= x 'VARS)
+      (if (= x 'VARS-)
         (transpile (state/get-base-variables-except []))
         (if (state/is-current-f-name? x)
           (do

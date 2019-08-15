@@ -7,9 +7,12 @@
             [tlaplus.Integers :refer :all]
             [tlaplus.Sequences :refer :all]))
 
+(defn- prime-symbol [s]
+  (symbol (namespace s) (str (name s) "'")))
+
 (defn binding-f [[k v]]
   `(do (alter-var-root #'~k (fn [_#] ~v))
-       (alter-var-root #'~(symbol (namespace k) (str (name k) "'")) (fn [_#] nil))))
+       (alter-var-root #'~(prime-symbol k) (fn [_#] nil))))
 
 (defmacro set-state* [v value]
   `(alter-var-root #'~v (fn [_#] ~value)))
@@ -22,28 +25,88 @@
       `(set-state ~more ~result)
       `~result)))
 
-(defmacro possible-results [possible n bindings body]
-  `(loop [n# ~n
-          possible# ~possible
-          unexpected# #{}]
-     ~@(map binding-f (partition 2 bindings))
-     (let [actual# ~body
-           remaining# (disj possible# actual#)
-           new-unexpected# (if (contains? ~possible actual#)
-                             unexpected#
-                             (conj unexpected# actual#))]
-       (if (pos? n#)
-         (recur (dec n#)
-                remaining#
-                new-unexpected#)
-         (when-not (and (empty? unexpected#)
-                        (empty? remaining#))
-           (throw (RuntimeException.
-                   (cond
-                     (empty? unexpected#) (str " unseen results: " remaining#)
-                     (empty? remaining#) (str "unexpected results: " unexpected#)
-                     :default (str "unexpected results: " unexpected#
-                                   " unseen results: " remaining#)))))))))
+(defn- resolve*
+  ([s]
+   (resolve* s s))
+  ([s base-s]
+   (resolve (let [meta-ns (:ns (meta base-s))]
+              (if (and (nil? (namespace s))
+                       meta-ns)
+                (symbol (str meta-ns) (str s))
+                s)))))
+
+(defn- assert-ns [s]
+  (when-not (or (namespace s)
+                (:ns (meta s)))
+    (throw (RuntimeException. (str "Must provide namespace on symbol: " s))))
+  s)
+
+(defn advance-state [variables]
+  (->> variables
+       (map assert-ns)
+       (map (fn [v]
+              (let [new-value @(resolve* (prime-symbol v) v)]
+                (when-not (nil? new-value)
+                  (alter-var-root (resolve* v) (fn [_]
+                                                 new-value))))))
+       doall))
+
+(defn new-state-map [variables]
+  (->> variables
+       (map assert-ns)
+       (mapcat (fn [v]
+                 [(keyword (name v)) @(resolve* v)]))
+       (apply hash-map)))
+
+(defn state-change-map [variables]
+  (->> variables
+       (map assert-ns)
+       (mapcat (fn [v]
+                 (let [new-value @(resolve* (prime-symbol v) v)]
+                   (when-not (nil? new-value)
+                     [(keyword (name v)) @(resolve* v)]))))
+       (remove nil?)
+       (apply hash-map)))
+
+(defmacro check-invariant [& body]
+  `(let [result# (do ~@body)]
+     (when-not result#
+       (throw (RuntimeException. "Invariant failed")))))
+
+(defmacro possible-results
+  ([possible bindings body]
+   `(possible-results ~possible ~bindings ~body 1000))
+  ([possible bindings body n]
+   `(loop [n# ~n
+           possible# ~possible
+           unexpected# #{}]
+      ~@(map binding-f (partition 2 bindings))
+      (let [actual# ~body
+            remaining# (disj possible# actual#)
+            new-unexpected# (if (contains? ~possible actual#)
+                              unexpected#
+                              (conj unexpected# actual#))]
+        (if (pos? n#)
+          (recur (dec n#)
+                 remaining#
+                 new-unexpected#)
+          (when-not (and (empty? unexpected#)
+                         (empty? remaining#))
+            (throw (RuntimeException.
+                    (cond
+                      (empty? unexpected#) (str " unseen results: " remaining#)
+                      (empty? remaining#) (str "unexpected results: " unexpected#)
+                      :default (str "unexpected results: " unexpected#
+                                    " unseen results: " remaining#))))))))))
+
+(defmacro possible-results-action
+  ([possible bindings arg-map]
+   `(possible-results-action ~possible ~bindings ~arg-map 1000))
+  ([possible bindings arg-map n]
+   `(possible-results ~possible ~bindings (do ~(:action arg-map)
+                                              (advance-state ~(:vars arg-map))
+                                              (check-invariant ~(:invariant arg-map))
+                                              (state-change-map ~(:vars arg-map))))))
 
 (VARIABLE M N)
 
@@ -55,7 +118,6 @@
                         [101 nil]
                         [nil 201]
                         [101 201]}
-                      1000
                       [M 100
                        N 200]
                       (do
@@ -67,7 +129,6 @@
   (with-rand-seed 12346
     (possible-results #{[nil nil]
                         [101 201]}
-                      1000
                       [M 100
                        N 200]
                       (do
@@ -95,7 +156,6 @@
   (loop [i 100]
     (when (pos? i)
       (time (possible-results #{#{6} #{7} #{8} #{9} nil}
-                              100
                               [M #{}]
                               (do
                                 (my-rule)
@@ -105,7 +165,6 @@
 (comment
   (time (possible-results [M #{}]
                           [M' #{#{6} #{7} #{8} #{9} nil}]
-                          100
                           (my-rule))))
 
 (deftest test-basic-types

@@ -97,6 +97,7 @@ Identifiers that were added specifically to support transpiling, they are neithe
 ```ALLOW-```
 ```atomic-```
 ```CHANGED-```
+```VARS-```
 ```line-```
 ```always-```
 ```eventually-```
@@ -387,6 +388,13 @@ Define the variables that make up the state:
 | --- | --- | --- |
 | code | `(VARIABLE messages leaders)` | `VARIABLE messages, leaders`<br>` `<br>` ` |
 | result |   |   |
+
+Reference the variables via the convenience identifier VARS-
+
+|  | salt | tla+ |
+| --- | --- | --- |
+| code | `VARS-` | `<< messages, leaders >>` |
+| result | `[messages leaders]` | `<< messages, leaders >>` |
 
 Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the ALLOW- keyword. NOTE: it is not possible to specify general predicates here.
 

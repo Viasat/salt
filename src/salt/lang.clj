@@ -84,6 +84,9 @@
 
 (defmacro VARIABLE [& vars]
   `(do
+     (def ~'VARS- '~(vec (->> vars
+                              (filter symbol?)
+                              (map #(with-meta % {:ns (.name *ns*)})))))
      ~@(map VARIABLE-f vars)
      nil))
 
@@ -101,8 +104,6 @@
 
 (defmacro SF [vars [f]]
   `[~f])
-
-(def VARS)
 
 (defn DOMAIN
   "Redefined variant of 'keys' to produce sets and to work on vectors"
@@ -258,6 +259,9 @@
 (defn range*
   "Redefined to include end value to match TLA+"
   [a b]
+  (when (or (nil? a)
+            (nil? b))
+    (throw (RuntimeException. (str "Cannot compute range* of: " [a b]))))
   (set (range a (inc b))))
 
 (defn map*

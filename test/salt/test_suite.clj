@@ -316,6 +316,14 @@
          ""
          false)
 
+  (check "Reference the variables via the convenience identifier VARS-"
+         ['(VARIABLE messages leaders)]
+         'VARS-
+         '[messages leaders]
+         "<< messages, leaders >>"
+         "<< messages, leaders >>"
+         true)
+
   (check "Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the ALLOW- keyword. NOTE: it is not possible to specify general predicates here."
          ['(VARIABLE messages leaders)]
          '(ALLOW- [messages []
