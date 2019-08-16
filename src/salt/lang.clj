@@ -168,7 +168,7 @@
                                   (str "all clauses need to reference variables as first operand " clauses)))))
     result))
 
-(defmacro ALLOW- [& clauses]
+(defmacro and* [& clauses]
   `(ALLOW* ~(clauses-to-bindings clauses)))
 
 (defmacro atomic- [& body]

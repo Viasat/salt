@@ -315,7 +315,7 @@
 (defn- transform-allow [x]
   (if (list? x)
     (let [[op & body] x]
-      (if (= op 'ALLOW-)
+      (if (= op 'and*)
         (list 'ALLOW* (lang/clauses-to-bindings body))
         x))
     x))
@@ -335,7 +335,7 @@
 (defmethod transpile-list 'ALLOW* [x]
   (transpile (expand-allow x)))
 
-(defmethod transpile-list 'ALLOW- [x]
+(defmethod transpile-list 'and* [x]
   (transpile-list (transform-allow x)))
 
 (defmethod transpile-list 'atomic- [x]

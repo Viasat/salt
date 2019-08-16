@@ -130,7 +130,7 @@
 (VARIABLE M N)
 
 (deftest test-atomic
-  ;; without an atomic- wrapper, it is possible for one of the ALLOW- blocks to be applied but not
+  ;; without an atomic- wrapper, it is possible for one of the and* blocks to be applied but not
   ;; the other
   (with-rand-seed 12346
     (possible-results #{[nil nil]
@@ -140,8 +140,8 @@
                       [M 100
                        N 200]
                       (do
-                        (ALLOW- (= M' (inc M)))
-                        (ALLOW- (= N' (inc N)))
+                        (and* (= M' (inc M)))
+                        (and* (= N' (inc N)))
                         [M' N'])))
 
   ;; with the atomic- wrapper, either both are applied or neither
@@ -152,8 +152,8 @@
                        N 200]
                       (do
                         (atomic-
-                         (ALLOW- (= M' (inc M)))
-                         (ALLOW- (= N' (inc N))))
+                         (and* (= M' (inc M)))
+                         (and* (= N' (inc N))))
                         [M' N']))))
 
 (comment
@@ -162,7 +162,7 @@
   (transpiler/transpile '(E [x (range* 1 9)]
                             (and (< x 10)
                                  (> x 5)
-                                 (ALLOW- (= M' (union M #{x}))))))
+                                 (and* (= M' (union M #{x}))))))
 
   (print (salt.state/get-text))
 
@@ -170,7 +170,7 @@
     (E [x (range* 1 10)]
        (and (< x 10)
             (> x 5)
-            (ALLOW- (= M' (union M #{x}))))))
+            (and* (= M' (union M #{x}))))))
 
   (loop [i 100]
     (when (pos? i)
@@ -843,7 +843,7 @@ line 3")
   (with-rand-seed 99
     (is (= [false true true true true true false true true true]
            (repeatedly 10 #(check-action
-                            (ALLOW- (= M' 100)))))))
+                            (and* (= M' 100)))))))
 
   (with-rand-seed 98
     (is (= [4 5 5 5 5 6 4 5 5 5]
@@ -852,7 +852,7 @@ line 3")
   (with-rand-seed 97
     (is (= [3 3 5 5 5 5 4 2 6 5]
            (repeatedly 10 #(check-action (E [x #{1 2 3 4 5 6}]
-                                            (ALLOW- (= M' x)))
+                                            (and* (= M' x)))
                                          M'))))))
 
 ;; test full specs

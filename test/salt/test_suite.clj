@@ -324,28 +324,28 @@
          "<< messages, leaders >>"
          true)
 
-  (check "Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the ALLOW- keyword. NOTE: it is not possible to specify general predicates here."
+  (check "Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the and* keyword. NOTE: it is not possible to specify general predicates here."
          ['(VARIABLE messages leaders)]
-         '(ALLOW- (= messages [])
-                  (= leaders #{}))
+         '(and* (= messages [])
+                (= leaders #{}))
          true
          "/\\  messages = << >>\n/\\  leaders = {}"
          ""
          false)
 
-  (check "To indicate allowed state transitions reference variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the ALLOW- keyword. NOTE: it is not possible to specify general predicates here."
+  (check "To indicate allowed state transitions reference variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the and* keyword. NOTE: it is not possible to specify general predicates here."
          ['(VARIABLE messages leaders)]
-         '(ALLOW- (= messages' [])
-                  (= leaders' #{}))
+         '(and* (= messages' [])
+                (= leaders' #{}))
          [:multi true false]
          "/\\  messages' = << >>\n/\\  leaders' = {}"
          ""
          false)
 
-  (check "If there are multiple ALLOW- blocks in a single rule that need to be applied together then wrap them in an atomic- block. NOTE: There is no coresponding TLA+ identifier as the default behavior from TLA+ is to atomically apply all the state changes."
+  (check "If there are multiple and* blocks in a single rule that need to be applied together then wrap them in an atomic- block. NOTE: There is no coresponding TLA+ identifier as the default behavior from TLA+ is to atomically apply all the state changes."
          ['(VARIABLE messages leaders)]
-         '(atomic- (and (ALLOW- (= messages' []))
-                        (ALLOW- (= leaders' #{}))))
+         '(atomic- (and (and* (= messages' []))
+                        (and* (= leaders' #{}))))
          [:multi true false]
          "/\\  messages' = << >>\n/\\  leaders' = {}"
          ""

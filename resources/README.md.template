@@ -86,6 +86,7 @@ Identifiers from the Clojure language:
 
 Identifiers from the Clojure language, whose semantics were modified to match TLA+:
 
+```and*```
 ```mod*```
 ```range*```
 ```map*```
@@ -94,7 +95,6 @@ Identifiers from the Clojure language, whose semantics were modified to match TL
 
 Identifiers that were added specifically to support transpiling, they are neither part of Clojure nor TLA+:
 
-```ALLOW-```
 ```atomic-```
 ```CHANGED-```
 ```VARS-```
