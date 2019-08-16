@@ -113,27 +113,63 @@
     (map? x) (set (keys x))
     :default (throw (RuntimeException. (str "cannot take domain of: " x)))))
 
+(def ^:dynamic *check-mode* false)
+
 (defmacro ALLOW-1 [x v]
-  `(alter-var-root #'~x (fn [_#] ~v)))
+  `(if *check-mode*
+     (do
+       (if (first *success*)
+         (do (alter-var-root #'~x (fn [_#] ~v))
+             true)
+         false))
+     (= ~x ~v)))
 
 (defn- ALLOW-f [[x v]]
   `(~'ALLOW-1 ~x ~v))
 
 (defn- prime-variable? [x]
-  (.endsWith (name x) "'"))
+  (and (symbol? x)
+       (.endsWith (name x) "'")))
 
-(defmacro ALLOW- [bindings]
-  (if (every? true? (map (comp prime-variable? first) (partition 2 bindings)))
-    `(let [success# (if (vector? *success*)
-                      (first *success*)
-                      (= (rand-int* 2) 0))]
-       (when success#
-         (and ~@(map ALLOW-f (partition 2 bindings))))
-       success#)
-    `(do (and ~@(map ALLOW-f (partition 2 bindings)))
-         true)))
+(defmacro check-action [& body]
+  `(binding [*check-mode* true]
+     ~@body))
 
 (def ^:dynamic *success*)
+
+(defmacro ALLOW* [bindings]
+  (if (every? true? (map (comp prime-variable? first) (partition 2 bindings)))
+    `(binding [*success* (if (vector? *success*)
+                           *success*
+                           [(= (rand-int* 2) 0)])]
+       (and ~@(map ALLOW-f (partition 2 bindings))))
+    `(binding [*success* [true]]
+       (and ~@(map ALLOW-f (partition 2 bindings))))))
+
+(defn clause-to-binding [[op a b :as x]]
+  (when-not (= '= op)
+    (throw (RuntimeException. (str "Expected an equality predicate " x))))
+  [a b])
+
+(defn clauses-to-bindings [clauses]
+  (let [result (-> (mapcat clause-to-binding clauses)
+                   vec)
+        symbols (->> result
+                     (partition 2)
+                     (map first))
+        all-symbols? (every? symbol? symbols)
+        all-prime? (every? prime-variable? symbols)
+        all-not-prime? (not (some prime-variable? symbols))]
+    (when-not (and all-symbols?
+                   (or all-prime?
+                       all-not-prime?))
+      (throw (RuntimeException. (if all-symbols?
+                                  (str "all clauses need to reference prime or non-prime variables " clauses)
+                                  (str "all clauses need to reference variables as first operand " clauses)))))
+    result))
+
+(defmacro ALLOW- [& clauses]
+  `(ALLOW* ~(clauses-to-bindings clauses)))
 
 (defmacro atomic- [& body]
   `(binding [*success* [(= (rand-int* 2) 0)]]

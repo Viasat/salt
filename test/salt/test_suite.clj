@@ -108,15 +108,15 @@
    `(binding [*ns* (find-ns 'salt.test-suite)]
       (if (and (vector? ~salt-result)
                (= :multi (first ~salt-result)))
-        (is (set (rest ~salt-result)) (eval ~salt-form))
+        (is (set (rest ~salt-result)) (check-action (eval ~salt-form)))
         (when (and (not (and (vector? ~salt-result)
                              (= :skip (first ~salt-result))))
                    (not= :ignore ~salt-result))
-          (is (= ~salt-result (eval (if (and (map? ~salt-form)
-                                             (= (set (keys ~salt-form)) #{:code
-                                                                          :alternate}))
-                                      (:code ~salt-form)
-                                      ~salt-form))))))
+          (is (= ~salt-result (check-action (eval (if (and (map? ~salt-form)
+                                                           (= (set (keys ~salt-form)) #{:code
+                                                                                        :alternate}))
+                                                    (:code ~salt-form)
+                                                    ~salt-form)))))))
       (is (= ~tla-code (transpiler/transpile-single-form (if (and (map? ~salt-form)
                                                                   (= (set (keys ~salt-form)) #{:code
                                                                                                :alternate}))
@@ -144,8 +144,8 @@
         (when (not= :ignore ~salt-result)
           (if (and (vector? ~salt-result)
                    (= :multi (first ~salt-result)))
-            (is (set (rest ~salt-result)) (eval ~salt-form))
-            (is (= ~salt-result (eval ~salt-form)))))
+            (is (set (rest ~salt-result)) (check-action (eval ~salt-form)))
+            (is (= ~salt-result (check-action (eval ~salt-form))))))
         (is (= ~tla-code
                (subs (transpiler/transpile-form ~salt-form)
                      (count base-text#)))))
@@ -326,8 +326,8 @@
 
   (check "Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the ALLOW- keyword. NOTE: it is not possible to specify general predicates here."
          ['(VARIABLE messages leaders)]
-         '(ALLOW- [messages []
-                   leaders #{}])
+         '(ALLOW- (= messages [])
+                  (= leaders #{}))
          true
          "/\\  messages = << >>\n/\\  leaders = {}"
          ""
@@ -335,8 +335,8 @@
 
   (check "To indicate allowed state transitions reference variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the ALLOW- keyword. NOTE: it is not possible to specify general predicates here."
          ['(VARIABLE messages leaders)]
-         '(ALLOW- [messages' []
-                   leaders' #{}])
+         '(ALLOW- (= messages' [])
+                  (= leaders' #{}))
          [:multi true false]
          "/\\  messages' = << >>\n/\\  leaders' = {}"
          ""
@@ -344,8 +344,8 @@
 
   (check "If there are multiple ALLOW- blocks in a single rule that need to be applied together then wrap them in an atomic- block. NOTE: There is no coresponding TLA+ identifier as the default behavior from TLA+ is to atomically apply all the state changes."
          ['(VARIABLE messages leaders)]
-         '(atomic- (and (ALLOW- [messages' []])
-                        (ALLOW- [leaders' #{}])))
+         '(atomic- (and (ALLOW- (= messages' []))
+                        (ALLOW- (= leaders' #{}))))
          [:multi true false]
          "/\\  messages' = << >>\n/\\  leaders' = {}"
          ""

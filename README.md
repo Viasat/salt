@@ -400,21 +400,21 @@ Specify the initial state of variables. This is an addition to TLA+ which does n
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(ALLOW- [messages [] leaders #{}])` | `/\  messages = << >>`<br>`/\  leaders = {}` |
+| code | `(ALLOW- (= messages []) (= leaders #{}))` | `/\  messages = << >>`<br>`/\  leaders = {}` |
 | result | `true` |   |
 
 To indicate allowed state transitions reference variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the ALLOW- keyword. NOTE: it is not possible to specify general predicates here.
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(ALLOW- [messages' [] leaders' #{}])` | `/\  messages' = << >>`<br>`/\  leaders' = {}` |
+| code | `(ALLOW- (= messages' []) (= leaders' #{}))` | `/\  messages' = << >>`<br>`/\  leaders' = {}` |
 | result |   |   |
 
 If there are multiple ALLOW- blocks in a single rule that need to be applied together then wrap them in an atomic- block. NOTE: There is no coresponding TLA+ identifier as the default behavior from TLA+ is to atomically apply all the state changes.
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(atomic-`<br>` (and (ALLOW- [messages' []]) (ALLOW- [leaders' #{}])))` | `/\  messages' = << >>`<br>`/\  leaders' = {}` |
+| code | `(atomic-`<br>` (and (ALLOW- (= messages' [])) (ALLOW- (= leaders' #{}))))` | `/\  messages' = << >>`<br>`/\  leaders' = {}` |
 | result |   |   |
 
 Indicate variables that are not changed
@@ -890,52 +890,52 @@ https://github.com/tlaplus/Examples/blob/master/specifications/transaction_commi
        (subset? msgs Message)))
 
 (defn TPInit []
-  (ALLOW- [rmState (fm- [rm RM]
-                        "working")
-           tmState "init"
-           tmPrepared #{}
-           msgs #{}]))
+  (ALLOW- (= rmState (fm- [rm RM]
+                          "working"))
+          (= tmState "init")
+          (= tmPrepared #{})
+          (= msgs #{})))
 
 (defn TMRcvPrepared [rm]
   (and (= tmState "init")
        (contains? msgs {:type "Prepared"
                         :rm rm})
-       (ALLOW- [tmPrepared' (union tmPrepared #{rm})])
+       (ALLOW- (= tmPrepared' (union tmPrepared #{rm})))
        (CHANGED- [tmPrepared])))
 
 (defn TMCommit []
   (and (= tmState "init")
        (= tmPrepared RM)
-       (ALLOW- [tmState' "committed"
-                msgs' (union msgs #{{:type "Commit"}})])
+       (ALLOW- (= tmState' "committed")
+               (= msgs' (union msgs #{{:type "Commit"}})))
        (CHANGED- [tmState, msgs])))
 
 (defn TMAbort []
   (and (= tmState "init")
-       (ALLOW- [tmState' "aborted"
-                msgs' (union msgs #{{:type "Abort"}})])
+       (ALLOW- (= tmState' "aborted")
+               (= msgs' (union msgs #{{:type "Abort"}})))
        (CHANGED- [tmState msgs])))
 
 (defn RMPrepare [rm]
   (and (= (get* rmState rm) "working")
-       (ALLOW- [rmState' (EXCEPT rmState [rm] "prepared")
-                msgs' (union msgs #{{:type "Prepared"
-                                     :rm rm}})])
+       (ALLOW- (= rmState' (EXCEPT rmState [rm] "prepared"))
+               (= msgs' (union msgs #{{:type "Prepared"
+                                       :rm rm}})))
        (CHANGED- [rmState msgs])))
 
 (defn RMChooseToAbort [rm]
   (and (= (get* rmState rm) "working")
-       (ALLOW- [rmState' (EXCEPT rmState [rm] "aborted")])
+       (ALLOW- (= rmState' (EXCEPT rmState [rm] "aborted")))
        (CHANGED- [rmState])))
 
 (defn RMRcvCommitMsg [rm]
   (and (contains? msgs {:type "Commit"})
-       (ALLOW- [rmState' (EXCEPT rmState [rm] "committed")])
+       (ALLOW- (= rmState' (EXCEPT rmState [rm] "committed")))
        (CHANGED- [rmState])))
 
 (defn RMRcvAbortMsg [rm]
   (and (contains? msgs {:type "Abort"})
-       (ALLOW- [rmState' (EXCEPT rmState [rm] "aborted")])
+       (ALLOW- (= rmState' (EXCEPT rmState [rm] "aborted")))
        (CHANGED- [rmState])))
 
 (defn TPNext []

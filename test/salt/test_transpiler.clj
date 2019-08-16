@@ -7,6 +7,22 @@
             [tlaplus.Integers :refer :all]
             [tlaplus.Sequences :refer :all]))
 
+(deftest test-allow-clauses
+  (is (= ['p 100 'q 200]
+         (clauses-to-bindings '((= p 100)
+                                (= q 200)))))
+  (is (= ['p' 100 'q' 200]
+         (clauses-to-bindings '((= p' 100)
+                                (= q' 200)))))
+  (is (thrown-with-msg? RuntimeException #"all clauses need to reference prime or non-prime variables"
+                        (clauses-to-bindings '((= p 100)
+                                               (= q' 200)))))
+  (is (thrown-with-msg? RuntimeException #"all clauses need to reference variables as first operand"
+                        (clauses-to-bindings '((= 100 q)
+                                               (= q' 200)))))
+  (is (thrown-with-msg? RuntimeException #"Expected an equality predicate"
+                        (clauses-to-bindings '((> q' 200))))))
+
 (defn- prime-symbol [s]
   (symbol (namespace s) (str (name s) "'")))
 
@@ -81,7 +97,7 @@
            possible# ~possible
            unexpected# #{}]
       ~@(map binding-f (partition 2 bindings))
-      (let [actual# ~body
+      (let [actual# (check-action ~body)
             remaining# (disj possible# actual#)
             new-unexpected# (if (contains? ~possible actual#)
                               unexpected#
@@ -103,10 +119,13 @@
   ([possible bindings arg-map]
    `(possible-results-action ~possible ~bindings ~arg-map 1000))
   ([possible bindings arg-map n]
-   `(possible-results ~possible ~bindings (do ~(:action arg-map)
-                                              (advance-state ~(:vars arg-map))
-                                              (check-invariant ~(:invariant arg-map))
-                                              (state-change-map ~(:vars arg-map))))))
+   `(possible-results ~possible
+                      ~bindings
+                      (do ~(:action arg-map)
+                          (advance-state ~(:vars arg-map))
+                          (check-invariant ~(:invariant arg-map))
+                          (state-change-map ~(:vars arg-map)))
+                      ~n)))
 
 (VARIABLE M N)
 
@@ -121,8 +140,8 @@
                       [M 100
                        N 200]
                       (do
-                        (ALLOW- [M' (inc M)])
-                        (ALLOW- [N' (inc N)])
+                        (ALLOW- (= M' (inc M)))
+                        (ALLOW- (= N' (inc N)))
                         [M' N'])))
 
   ;; with the atomic- wrapper, either both are applied or neither
@@ -133,8 +152,8 @@
                        N 200]
                       (do
                         (atomic-
-                         (ALLOW- [M' (inc M)])
-                         (ALLOW- [N' (inc N)]))
+                         (ALLOW- (= M' (inc M)))
+                         (ALLOW- (= N' (inc N))))
                         [M' N']))))
 
 (comment
@@ -143,7 +162,7 @@
   (transpiler/transpile '(E [x (range* 1 9)]
                             (and (< x 10)
                                  (> x 5)
-                                 (ALLOW- [M' (union M #{x})]))))
+                                 (ALLOW- (= M' (union M #{x}))))))
 
   (print (salt.state/get-text))
 
@@ -151,7 +170,7 @@
     (E [x (range* 1 10)]
        (and (< x 10)
             (> x 5)
-            (ALLOW- [M' (union M #{x})]))))
+            (ALLOW- (= M' (union M #{x}))))))
 
   (loop [i 100]
     (when (pos? i)
@@ -823,7 +842,8 @@ line 3")
 (deftest test-random
   (with-rand-seed 99
     (is (= [false true true true true true false true true true]
-           (repeatedly 10 #(ALLOW- [M' 100])))))
+           (repeatedly 10 #(check-action
+                            (ALLOW- (= M' 100)))))))
 
   (with-rand-seed 98
     (is (= [4 5 5 5 5 6 4 5 5 5]
@@ -831,9 +851,9 @@ line 3")
                               (> x 3))))))
   (with-rand-seed 97
     (is (= [3 3 5 5 5 5 4 2 6 5]
-           (repeatedly 10 #(do (E [x #{1 2 3 4 5 6}]
-                                  (ALLOW- [M' x]))
-                               M'))))))
+           (repeatedly 10 #(check-action (E [x #{1 2 3 4 5 6}]
+                                            (ALLOW- (= M' x)))
+                                         M'))))))
 
 ;; test full specs
 

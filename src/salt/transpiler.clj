@@ -2,6 +2,7 @@
   "Walks a tree of salt (i.e. clojure) code and transpiles into the corresponding TLA+ code."
   (:require [clojure.string :as string]
             [clojure.set :as set]
+            [salt.lang :as lang]
             [salt.state :as state]))
 
 ;; helper functions
@@ -311,19 +312,31 @@
                         (apply list)))
         (transpile (to-assignment-list (first p-bindings)))))))
 
-(defn- expand-allow [x]
-  (if (and (list? x)
-           (= (first x) 'ALLOW-))
-    (let [[_ bindings] x]
-      (apply list (conj (->> bindings
-                             (partition 2)
-                             (map (fn [[l r]]
-                                    (apply list ['== l r]))))
-                        'and)))
+(defn- transform-allow [x]
+  (if (list? x)
+    (let [[op & body] x]
+      (if (= op 'ALLOW-)
+        (list 'ALLOW* (lang/clauses-to-bindings body))
+        x))
     x))
 
-(defmethod transpile-list 'ALLOW- [x]
+(defn- expand-allow [x]
+  (let [x (transform-allow x)]
+    (if (and (list? x)
+             (= (first x) 'ALLOW*))
+      (let [[_ bindings] x]
+        (apply list (conj (->> bindings
+                               (partition 2)
+                               (map (fn [[l r]]
+                                      (apply list ['== l r]))))
+                          'and)))
+      x)))
+
+(defmethod transpile-list 'ALLOW* [x]
   (transpile (expand-allow x)))
+
+(defmethod transpile-list 'ALLOW- [x]
+  (transpile-list (transform-allow x)))
 
 (defmethod transpile-list 'atomic- [x]
   (let [[_ & body] x]
