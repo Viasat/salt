@@ -23,52 +23,52 @@ https://github.com/tlaplus/Examples/blob/master/specifications/transaction_commi
        (subset? msgs Message)))
 
 (defn TPInit []
-  (and* (= rmState (fm- [rm RM]
-                        "working"))
-        (= tmState "init")
-        (= tmPrepared #{})
-        (= msgs #{})))
+  (and (= rmState (fm- [rm RM]
+                       "working"))
+       (= tmState "init")
+       (= tmPrepared #{})
+       (= msgs #{})))
 
 (defn TMRcvPrepared [rm]
   (and (= tmState "init")
        (contains? msgs {:type "Prepared"
                         :rm rm})
-       (and* (= tmPrepared' (union tmPrepared #{rm})))
+       (= tmPrepared' (union tmPrepared #{rm}))
        (CHANGED- [tmPrepared])))
 
 (defn TMCommit []
   (and (= tmState "init")
        (= tmPrepared RM)
-       (and* (= tmState' "committed")
-             (= msgs' (union msgs #{{:type "Commit"}})))
-       (CHANGED- [tmState, msgs])))
+       (= tmState' "committed")
+       (= msgs' (union msgs #{{:type "Commit"}}))
+       (CHANGED- [tmState msgs])))
 
 (defn TMAbort []
   (and (= tmState "init")
-       (and* (= tmState' "aborted")
-             (= msgs' (union msgs #{{:type "Abort"}})))
+       (= tmState' "aborted")
+       (= msgs' (union msgs #{{:type "Abort"}}))
        (CHANGED- [tmState msgs])))
 
 (defn RMPrepare [rm]
   (and (= (get* rmState rm) "working")
-       (and* (= rmState' (EXCEPT rmState [rm] "prepared"))
-             (= msgs' (union msgs #{{:type "Prepared"
-                                     :rm rm}})))
+       (= rmState' (EXCEPT rmState [rm] "prepared"))
+       (= msgs' (union msgs #{{:type "Prepared"
+                               :rm rm}}))
        (CHANGED- [rmState msgs])))
 
 (defn RMChooseToAbort [rm]
   (and (= (get* rmState rm) "working")
-       (and* (= rmState' (EXCEPT rmState [rm] "aborted")))
+       (= rmState' (EXCEPT rmState [rm] "aborted"))
        (CHANGED- [rmState])))
 
 (defn RMRcvCommitMsg [rm]
   (and (contains? msgs {:type "Commit"})
-       (and* (= rmState' (EXCEPT rmState [rm] "committed")))
+       (= rmState' (EXCEPT rmState [rm] "committed"))
        (CHANGED- [rmState])))
 
 (defn RMRcvAbortMsg [rm]
   (and (contains? msgs {:type "Abort"})
-       (and* (= rmState' (EXCEPT rmState [rm] "aborted")))
+       (= rmState' (EXCEPT rmState [rm] "aborted"))
        (CHANGED- [rmState])))
 
 (defn TPNext []

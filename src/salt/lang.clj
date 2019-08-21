@@ -52,7 +52,7 @@
                              (when (true? r#)
                                %)) ~s)]
      (if (pos? (count choices#))
-       (rand-nth* choices#)
+       (boolean (rand-nth* choices#))
        false)))
 
 (defmacro ASSUME [body]
@@ -113,38 +113,11 @@
     (map? x) (set (keys x))
     :default (throw (RuntimeException. (str "cannot take domain of: " x)))))
 
-(def ^:dynamic *check-mode* false)
-
-(defmacro ALLOW-1 [x v]
-  `(if *check-mode*
-     (do
-       (if (first *success*)
-         (do (alter-var-root #'~x (fn [_#] ~v))
-             true)
-         false))
-     (= ~x ~v)))
-
-(defn- ALLOW-f [[x v]]
-  `(~'ALLOW-1 ~x ~v))
-
 (defn- prime-variable? [x]
   (and (symbol? x)
        (.endsWith (name x) "'")))
 
-(defmacro check-action [& body]
-  `(binding [*check-mode* true]
-     ~@body))
-
 (def ^:dynamic *success*)
-
-(defmacro ALLOW* [bindings]
-  (if (every? true? (map (comp prime-variable? first) (partition 2 bindings)))
-    `(binding [*success* (if (vector? *success*)
-                           *success*
-                           [(= (rand-int* 2) 0)])]
-       (and ~@(map ALLOW-f (partition 2 bindings))))
-    `(binding [*success* [true]]
-       (and ~@(map ALLOW-f (partition 2 bindings))))))
 
 (defn clause-to-binding [[op a b :as x]]
   (when-not (= '= op)
@@ -167,13 +140,6 @@
                                   (str "all clauses need to reference prime or non-prime variables " clauses)
                                   (str "all clauses need to reference variables as first operand " clauses)))))
     result))
-
-(defmacro and* [& clauses]
-  `(ALLOW* ~(clauses-to-bindings clauses)))
-
-(defmacro atomic- [& body]
-  `(binding [*success* [(= (rand-int* 2) 0)]]
-     ~@body))
 
 (defmacro CHOOSE [[x s] body]
   `(first (filter (fn [~x]
@@ -352,3 +318,7 @@ clojure changed tla+
                   X    : foo
 
 ")
+
+(defmacro with-state [constants state & body]
+  `(with-redefs ~(into [] (mapcat identity (merge constants state)))
+     ~@body))

@@ -300,50 +300,6 @@
 (defmethod transpile-list '== [x]
   (binary-operator x "="))
 
-(defmethod transpile-list 'ALLOW-1 [x]
-  (let [[_ bindings] x
-        to-assignment-list (fn [[x v]]
-                             (apply list ['== x v]))]
-    (let [p-bindings (partition 2 bindings)]
-      (if (> (count p-bindings) 1)
-        (transpile (->> p-bindings
-                        (map to-assignment-list)
-                        (into ['and])
-                        (apply list)))
-        (transpile (to-assignment-list (first p-bindings)))))))
-
-(defn- transform-allow [x]
-  (if (list? x)
-    (let [[op & body] x]
-      (if (= op 'and*)
-        (list 'ALLOW* (lang/clauses-to-bindings body))
-        x))
-    x))
-
-(defn- expand-allow [x]
-  (let [x (transform-allow x)]
-    (if (and (list? x)
-             (= (first x) 'ALLOW*))
-      (let [[_ bindings] x]
-        (apply list (conj (->> bindings
-                               (partition 2)
-                               (map (fn [[l r]]
-                                      (apply list ['== l r]))))
-                          'and)))
-      x)))
-
-(defmethod transpile-list 'ALLOW* [x]
-  (transpile (expand-allow x)))
-
-(defmethod transpile-list 'and* [x]
-  (transpile-list (transform-allow x)))
-
-(defmethod transpile-list 'atomic- [x]
-  (let [[_ & body] x]
-    (->> body
-         (map transpile)
-         doall)))
-
 (defmethod transpile-list 'CHANGED- [x]
   (let [[op vs] x]
     (unary-operator [op (state/get-base-variables-except vs)] "UNCHANGED")))
@@ -386,12 +342,11 @@
 
 (defn- pull-up-ands [children]
   (->> children
-       (mapcat (fn [x]
-                 (let [child (expand-allow x)]
-                   (if (and (list? child)
-                            (= (first child) 'and))
-                     (rest child)
-                     [child]))))))
+       (mapcat (fn [child]
+                 (if (and (list? child)
+                          (= (first child) 'and))
+                   (rest child)
+                   [child])))))
 
 ;; primitives
 

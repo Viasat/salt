@@ -51,6 +51,7 @@ Alternatively, the salt transpiler can be invoked from the command line:
    * [Functions](#functions)
  * [Example Salt](#example-salt)
  * [Example TLA+](#example-tla)
+ * [Change Log](#change-log)
 
 # Language Identifiers
 
@@ -86,7 +87,6 @@ Identifiers from the Clojure language:
 
 Identifiers from the Clojure language, whose semantics were modified to match TLA+:
 
-```and*```
 ```mod*```
 ```range*```
 ```map*```
@@ -95,7 +95,6 @@ Identifiers from the Clojure language, whose semantics were modified to match TL
 
 Identifiers that were added specifically to support transpiling, they are neither part of Clojure nor TLA+:
 
-```atomic-```
 ```CHANGED-```
 ```VARS-```
 ```line-```
@@ -185,6 +184,10 @@ The following is a full sample TLA+ output produced by the salt file above:
 ```
 @example-tla
 ```
+
+# Change Log
+
+2019/08/19 version 0.0.2 Introduced symbolic evaluator that evaluates where possible and then simplifies for testing action predicates.
 
 # Copyright
 

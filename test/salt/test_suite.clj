@@ -108,15 +108,15 @@
    `(binding [*ns* (find-ns 'salt.test-suite)]
       (if (and (vector? ~salt-result)
                (= :multi (first ~salt-result)))
-        (is (set (rest ~salt-result)) (check-action (eval ~salt-form)))
+        (is (set (rest ~salt-result)) (eval ~salt-form))
         (when (and (not (and (vector? ~salt-result)
                              (= :skip (first ~salt-result))))
                    (not= :ignore ~salt-result))
-          (is (= ~salt-result (check-action (eval (if (and (map? ~salt-form)
-                                                           (= (set (keys ~salt-form)) #{:code
-                                                                                        :alternate}))
-                                                    (:code ~salt-form)
-                                                    ~salt-form)))))))
+          (is (= ~salt-result (eval (if (and (map? ~salt-form)
+                                             (= (set (keys ~salt-form)) #{:code
+                                                                          :alternate}))
+                                      (:code ~salt-form)
+                                      ~salt-form))))))
       (is (= ~tla-code (transpiler/transpile-single-form (if (and (map? ~salt-form)
                                                                   (= (set (keys ~salt-form)) #{:code
                                                                                                :alternate}))
@@ -144,8 +144,8 @@
         (when (not= :ignore ~salt-result)
           (if (and (vector? ~salt-result)
                    (= :multi (first ~salt-result)))
-            (is (set (rest ~salt-result)) (check-action (eval ~salt-form)))
-            (is (= ~salt-result (check-action (eval ~salt-form))))))
+            (is (set (rest ~salt-result)) (eval ~salt-form))
+            (is (= ~salt-result (eval ~salt-form)))))
         (is (= ~tla-code
                (subs (transpiler/transpile-form ~salt-form)
                      (count base-text#)))))
@@ -297,7 +297,7 @@
          false)
 
   (check "Make assertions about constants"
-         ['(CONSTANT Clients Servers Limit)
+         ['(CONSTANT Clients Servers Data Limit)
           '(def Clients #{})
           '(def Servers #{})
           '(def Limit 20)]
@@ -306,7 +306,7 @@
                    (< Limit 100)))
          :ignore
          "ASSUME\n    /\\  Clients \\subseteq Servers\n    /\\  Limit < 100\n\n"
-         ""
+         "TRUE"
          false)
 
   (check "Define the variables that make up the state:"
@@ -324,29 +324,20 @@
          "<< messages, leaders >>"
          true)
 
-  (check "Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the and* keyword. NOTE: it is not possible to specify general predicates here."
+  (check "Specify the initial state predicate."
          ['(VARIABLE messages leaders)]
-         '(and* (= messages [])
-                (= leaders #{}))
-         true
+         '(and (= messages [])
+               (= leaders #{}))
+         :ignore
          "/\\  messages = << >>\n/\\  leaders = {}"
          ""
          false)
 
-  (check "To indicate allowed state transitions reference variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the and* keyword. NOTE: it is not possible to specify general predicates here."
+  (check "In action predicates reference primed variable symbols."
          ['(VARIABLE messages leaders)]
-         '(and* (= messages' [])
-                (= leaders' #{}))
-         [:multi true false]
-         "/\\  messages' = << >>\n/\\  leaders' = {}"
-         ""
-         false)
-
-  (check "If there are multiple and* blocks in a single rule that need to be applied together then wrap them in an atomic- block. NOTE: There is no coresponding TLA+ identifier as the default behavior from TLA+ is to atomically apply all the state changes."
-         ['(VARIABLE messages leaders)]
-         '(atomic- (and (and* (= messages' []))
-                        (and* (= leaders' #{}))))
-         [:multi true false]
+         '(and (= messages' [])
+               (= leaders' #{}))
+         :ignore
          "/\\  messages' = << >>\n/\\  leaders' = {}"
          ""
          false)
@@ -448,12 +439,12 @@ multi line comment")
          "<<TRUE, TRUE, TRUE, TRUE>>"
          true)
 
-  (check "Operate on an item that exists in a set"
+  (check "Specify something is true for some item in a set."
          '(E [x #{1 2 3}]
              true)
-         [:multi 1 2 3]
+         true
          "\\E x \\in { 1, 3, 2 } :\n    TRUE"
-         :?
+         "TRUE"
          true)
 
   (check "Specify something is true for all items in a set"
@@ -461,7 +452,7 @@ multi line comment")
              (> x 2))
          false
          "\\A x \\in { 1, 3, 2 } :\n    x > 2"
-         :?
+         "FALSE"
          true))
 
 (deftest test-temporal-logic
@@ -602,7 +593,7 @@ multi line comment")
   (check "Apply a function to all elements of a set"
          '(map* (fn [x]
                   (+ 1 x)) #{1 2})
-         [:skip #{2 3}]
+         #{2 3}
          "{ 1 + x :\n    x \\in { 1, 2 } }"
          "{2, 3}"
          true)
@@ -933,6 +924,9 @@ multi line comment")
          "<<10, 20>>"
          true))
 
+(defn Add [x y]
+  (+ x y))
+
 (deftest test-functions
   (section "Functions")
   (check "Define a function using fn. Depending on the context it will be transpiled to different forms."
@@ -957,7 +951,7 @@ multi line comment")
          ['(defn Add [x y]
              (+ x y))]
          '(Add 1 2)
-         :ignore
+         3
          "Add(1, 2)"
          "3"
          true)

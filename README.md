@@ -51,6 +51,7 @@ Alternatively, the salt transpiler can be invoked from the command line:
    * [Functions](#functions)
  * [Example Salt](#example-salt)
  * [Example TLA+](#example-tla)
+ * [Change Log](#change-log)
 
 # Language Identifiers
 
@@ -86,7 +87,6 @@ Identifiers from the Clojure language:
 
 Identifiers from the Clojure language, whose semantics were modified to match TLA+:
 
-```and*```
 ```mod*```
 ```range*```
 ```map*```
@@ -95,7 +95,6 @@ Identifiers from the Clojure language, whose semantics were modified to match TL
 
 Identifiers that were added specifically to support transpiling, they are neither part of Clojure nor TLA+:
 
-```atomic-```
 ```CHANGED-```
 ```VARS-```
 ```line-```
@@ -345,19 +344,19 @@ Use the standard inequality operators:
 | code | `[(< 1 2) (<= 1 1) (> 2 1) (>= 2 2)]` | `<< (1 < 2), (1 <= 1), (2 > 1), (2 >= 2) >>` |
 | result | `[true true true true]` | `<<TRUE, TRUE, TRUE, TRUE>>` |
 
-Operate on an item that exists in a set
+Specify something is true for some item in a set.
 
 |  | salt | tla+ |
 | --- | --- | --- |
 | code | `(E [x #{1 3 2}] true)` | `\\E x \\in { 1, 3, 2 } :`<br>`    TRUE` |
-| result |   |   |
+| result | `true` | `TRUE` |
 
 Specify something is true for all items in a set
 
 |  | salt | tla+ |
 | --- | --- | --- |
 | code | `(A [x #{1 3 2}] (> x 2))` | `\\A x \\in { 1, 3, 2 } :`<br>`    x > 2` |
-| result | `false` |   |
+| result | `false` | `FALSE` |
 
 Specs
 ----
@@ -380,7 +379,7 @@ Make assertions about constants
 |  | salt | tla+ |
 | --- | --- | --- |
 | code | `(ASSUME (and (subset? Clients Servers) (< Limit 100)))` | `ASSUME`<br>`    /\  Clients \\subseteq Servers`<br>`    /\  Limit < 100`<br>` `<br>` ` |
-| result |   |   |
+| result |   | `TRUE` |
 
 Define the variables that make up the state:
 
@@ -396,25 +395,18 @@ Reference the variables via the convenience identifier VARS-
 | code | `VARS-` | `<< messages, leaders >>` |
 | result | `[messages leaders]` | `<< messages, leaders >>` |
 
-Specify the initial state of variables. This is an addition to TLA+ which does not have an equivalent of the and* keyword. NOTE: it is not possible to specify general predicates here.
+Specify the initial state predicate.
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(and* (= messages []) (= leaders #{}))` | `/\  messages = << >>`<br>`/\  leaders = {}` |
-| result | `true` |   |
-
-To indicate allowed state transitions reference variable symbols with a prime suffix. This is an addition to TLA+ which does not have an equivalent to the and* keyword. NOTE: it is not possible to specify general predicates here.
-
-|  | salt | tla+ |
-| --- | --- | --- |
-| code | `(and* (= messages' []) (= leaders' #{}))` | `/\  messages' = << >>`<br>`/\  leaders' = {}` |
+| code | `(and (= messages []) (= leaders #{}))` | `/\  messages = << >>`<br>`/\  leaders = {}` |
 | result |   |   |
 
-If there are multiple and* blocks in a single rule that need to be applied together then wrap them in an atomic- block. NOTE: There is no coresponding TLA+ identifier as the default behavior from TLA+ is to atomically apply all the state changes.
+In action predicates reference primed variable symbols.
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(atomic-`<br>` (and (and* (= messages' [])) (and* (= leaders' #{}))))` | `/\  messages' = << >>`<br>`/\  leaders' = {}` |
+| code | `(and (= messages' []) (= leaders' #{}))` | `/\  messages' = << >>`<br>`/\  leaders' = {}` |
 | result |   |   |
 
 Indicate variables that are not changed
@@ -559,7 +551,7 @@ Apply a function to all elements of a set
 |  | salt | tla+ |
 | --- | --- | --- |
 | code | `(map* (fn [x] (+ 1 x)) #{1 2})` | `{ 1 + x :`<br>`    x \\in { 1, 2 } }` |
-| result |   | `{2, 3}` |
+| result | `#{3 2}` | `{2, 3}` |
 
 Compute the size of a set
 
@@ -814,7 +806,7 @@ Invoke a function as normal:
 |  | salt | tla+ |
 | --- | --- | --- |
 | code | `(Add 1 2)` | `Add(1, 2)` |
-| result |   | `3` |
+| result | `3` | `3` |
 
 Define a recursive function:
 
@@ -890,52 +882,52 @@ https://github.com/tlaplus/Examples/blob/master/specifications/transaction_commi
        (subset? msgs Message)))
 
 (defn TPInit []
-  (and* (= rmState (fm- [rm RM]
-                        "working"))
-        (= tmState "init")
-        (= tmPrepared #{})
-        (= msgs #{})))
+  (and (= rmState (fm- [rm RM]
+                       "working"))
+       (= tmState "init")
+       (= tmPrepared #{})
+       (= msgs #{})))
 
 (defn TMRcvPrepared [rm]
   (and (= tmState "init")
        (contains? msgs {:type "Prepared"
                         :rm rm})
-       (and* (= tmPrepared' (union tmPrepared #{rm})))
+       (= tmPrepared' (union tmPrepared #{rm}))
        (CHANGED- [tmPrepared])))
 
 (defn TMCommit []
   (and (= tmState "init")
        (= tmPrepared RM)
-       (and* (= tmState' "committed")
-             (= msgs' (union msgs #{{:type "Commit"}})))
-       (CHANGED- [tmState, msgs])))
+       (= tmState' "committed")
+       (= msgs' (union msgs #{{:type "Commit"}}))
+       (CHANGED- [tmState msgs])))
 
 (defn TMAbort []
   (and (= tmState "init")
-       (and* (= tmState' "aborted")
-             (= msgs' (union msgs #{{:type "Abort"}})))
+       (= tmState' "aborted")
+       (= msgs' (union msgs #{{:type "Abort"}}))
        (CHANGED- [tmState msgs])))
 
 (defn RMPrepare [rm]
   (and (= (get* rmState rm) "working")
-       (and* (= rmState' (EXCEPT rmState [rm] "prepared"))
-             (= msgs' (union msgs #{{:type "Prepared"
-                                     :rm rm}})))
+       (= rmState' (EXCEPT rmState [rm] "prepared"))
+       (= msgs' (union msgs #{{:type "Prepared"
+                               :rm rm}}))
        (CHANGED- [rmState msgs])))
 
 (defn RMChooseToAbort [rm]
   (and (= (get* rmState rm) "working")
-       (and* (= rmState' (EXCEPT rmState [rm] "aborted")))
+       (= rmState' (EXCEPT rmState [rm] "aborted"))
        (CHANGED- [rmState])))
 
 (defn RMRcvCommitMsg [rm]
   (and (contains? msgs {:type "Commit"})
-       (and* (= rmState' (EXCEPT rmState [rm] "committed")))
+       (= rmState' (EXCEPT rmState [rm] "committed"))
        (CHANGED- [rmState])))
 
 (defn RMRcvAbortMsg [rm]
   (and (contains? msgs {:type "Abort"})
-       (and* (= rmState' (EXCEPT rmState [rm] "aborted")))
+       (= rmState' (EXCEPT rmState [rm] "aborted"))
        (CHANGED- [rmState])))
 
 (defn TPNext []
@@ -1043,6 +1035,10 @@ TPSpec ==
 =============================================================================
 
 ```
+
+# Change Log
+
+2019/08/19 version 0.0.2 Introduced symbolic evaluator that evaluates where possible and then simplifies for testing action predicates.
 
 # Copyright
 

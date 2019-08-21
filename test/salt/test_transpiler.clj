@@ -3,6 +3,7 @@
             [clojure.set :as set]
             [clojure.test :refer :all]
             [salt.lang :refer :all]
+            [salt.seval :as seval]
             [salt.transpiler :as transpiler]
             [tlaplus.Integers :refer :all]
             [tlaplus.Sequences :refer :all]))
@@ -23,168 +24,9 @@
   (is (thrown-with-msg? RuntimeException #"Expected an equality predicate"
                         (clauses-to-bindings '((> q' 200))))))
 
-(defn- prime-symbol [s]
-  (symbol (namespace s) (str (name s) "'")))
-
-(defn binding-f [[k v]]
-  `(do (alter-var-root #'~k (fn [_#] ~v))
-       (alter-var-root #'~(prime-symbol k) (fn [_#] nil))))
-
-(defmacro set-state* [v value]
-  `(alter-var-root #'~v (fn [_#] ~value)))
-
-(defmacro set-state [bindings & body]
-  (let [[v val & more] bindings
-        result `(do (set-state* ~v ~val)
-                    ~@body)]
-    (if (seq? more)
-      `(set-state ~more ~result)
-      `~result)))
-
-(defn- resolve*
-  ([s]
-   (resolve* s s))
-  ([s base-s]
-   (resolve (let [meta-ns (:ns (meta base-s))]
-              (if (and (nil? (namespace s))
-                       meta-ns)
-                (symbol (str meta-ns) (str s))
-                s)))))
-
-(defn- assert-ns [s]
-  (when-not (or (namespace s)
-                (:ns (meta s)))
-    (throw (RuntimeException. (str "Must provide namespace on symbol: " s))))
-  s)
-
-(defn advance-state [variables]
-  (->> variables
-       (map assert-ns)
-       (map (fn [v]
-              (let [new-value @(resolve* (prime-symbol v) v)]
-                (when-not (nil? new-value)
-                  (alter-var-root (resolve* v) (fn [_]
-                                                 new-value))))))
-       doall))
-
-(defn new-state-map [variables]
-  (->> variables
-       (map assert-ns)
-       (mapcat (fn [v]
-                 [(keyword (name v)) @(resolve* v)]))
-       (apply hash-map)))
-
-(defn state-change-map [variables]
-  (->> variables
-       (map assert-ns)
-       (mapcat (fn [v]
-                 (let [new-value @(resolve* (prime-symbol v) v)]
-                   (when-not (nil? new-value)
-                     [(keyword (name v)) @(resolve* v)]))))
-       (remove nil?)
-       (apply hash-map)))
-
-(defmacro check-invariant [& body]
-  `(let [result# (do ~@body)]
-     (when-not result#
-       (throw (RuntimeException. "Invariant failed")))))
-
-(defmacro possible-results
-  ([possible bindings body]
-   `(possible-results ~possible ~bindings ~body 1000))
-  ([possible bindings body n]
-   `(loop [n# ~n
-           possible# ~possible
-           unexpected# #{}]
-      ~@(map binding-f (partition 2 bindings))
-      (let [actual# (check-action ~body)
-            remaining# (disj possible# actual#)
-            new-unexpected# (if (contains? ~possible actual#)
-                              unexpected#
-                              (conj unexpected# actual#))]
-        (if (pos? n#)
-          (recur (dec n#)
-                 remaining#
-                 new-unexpected#)
-          (when-not (and (empty? unexpected#)
-                         (empty? remaining#))
-            (throw (RuntimeException.
-                    (cond
-                      (empty? unexpected#) (str " unseen results: " remaining#)
-                      (empty? remaining#) (str "unexpected results: " unexpected#)
-                      :default (str "unexpected results: " unexpected#
-                                    " unseen results: " remaining#))))))))))
-
-(defmacro possible-results-action
-  ([possible bindings arg-map]
-   `(possible-results-action ~possible ~bindings ~arg-map 1000))
-  ([possible bindings arg-map n]
-   `(possible-results ~possible
-                      ~bindings
-                      (do ~(:action arg-map)
-                          (advance-state ~(:vars arg-map))
-                          (check-invariant ~(:invariant arg-map))
-                          (state-change-map ~(:vars arg-map)))
-                      ~n)))
+;;
 
 (VARIABLE M N)
-
-(deftest test-atomic
-  ;; without an atomic- wrapper, it is possible for one of the and* blocks to be applied but not
-  ;; the other
-  (with-rand-seed 12346
-    (possible-results #{[nil nil]
-                        [101 nil]
-                        [nil 201]
-                        [101 201]}
-                      [M 100
-                       N 200]
-                      (do
-                        (and* (= M' (inc M)))
-                        (and* (= N' (inc N)))
-                        [M' N'])))
-
-  ;; with the atomic- wrapper, either both are applied or neither
-  (with-rand-seed 12346
-    (possible-results #{[nil nil]
-                        [101 201]}
-                      [M 100
-                       N 200]
-                      (do
-                        (atomic-
-                         (and* (= M' (inc M)))
-                         (and* (= N' (inc N))))
-                        [M' N']))))
-
-(comment
-  (transpiler/transpile '(VARIABLE M))
-
-  (transpiler/transpile '(E [x (range* 1 9)]
-                            (and (< x 10)
-                                 (> x 5)
-                                 (and* (= M' (union M #{x}))))))
-
-  (print (salt.state/get-text))
-
-  (defn my-rule []
-    (E [x (range* 1 10)]
-       (and (< x 10)
-            (> x 5)
-            (and* (= M' (union M #{x}))))))
-
-  (loop [i 100]
-    (when (pos? i)
-      (time (possible-results #{#{6} #{7} #{8} #{9} nil}
-                              [M #{}]
-                              (do
-                                (my-rule)
-                                M')))
-      (recur (dec i)))))
-
-(comment
-  (time (possible-results [M #{}]
-                          [M' #{#{6} #{7} #{8} #{9} nil}]
-                          (my-rule))))
 
 (deftest test-basic-types
   (is (= "100"
@@ -836,24 +678,6 @@ line 3")
                         (every?* #{1 2 3 4 5} #{1 3})))
   (is (= "<< 1, 3 >> \\in (Seq( { 1, 4, 3, 2, 5 } ))"
          (transpiler/transpile-single-form '(every?* #{1 2 3 4 5} [1 3])))))
-
-;; test deterministic random numbers
-
-(deftest test-random
-  (with-rand-seed 99
-    (is (= [false true true true true true false true true true]
-           (repeatedly 10 #(check-action
-                            (and* (= M' 100)))))))
-
-  (with-rand-seed 98
-    (is (= [4 5 5 5 5 6 4 5 5 5]
-           (repeatedly 10 #(E [x #{1 2 3 4 5 6}]
-                              (> x 3))))))
-  (with-rand-seed 97
-    (is (= [3 3 5 5 5 5 4 2 6 5]
-           (repeatedly 10 #(check-action (E [x #{1 2 3 4 5 6}]
-                                            (and* (= M' x)))
-                                         M'))))))
 
 ;; test full specs
 

@@ -28,68 +28,68 @@
 
 (line-)
 
-(defn BadGuyStatusFights []
+(defn BadGuyFights []
   (and (not= badGuyStatus "defeated")
        (E [hero livingGoodGuys]
           (and
-           (and* (= livingGoodGuys' (difference livingGoodGuys #{hero})))
+           (= livingGoodGuys' (difference livingGoodGuys #{hero}))
            (if (= hero HasArtifact)
-             (and (and* (= badGuyStatus' "hasArtifact")
-                        (= log' (conj (conj log ["BadGuyStatus defeats: " hero])
-                                      ["BadGuyStatus has stone"])))
+             (and (= badGuyStatus' "hasArtifact")
+                  (= log' (conj (conj log ["BadGuy defeats: " hero])
+                                ["BadGuy has stone"]))
                   (UNCHANGED [toDestroy]))
              (and
-              (and* (= log' (conj log ["BadGuyStatus defeats: " hero])))
+              (= log' (conj log ["BadGuy defeats: " hero]))
               (UNCHANGED [badGuyStatus toDestroy])))))))
 
-(defn BadGuyStatusSnaps []
+(defn BadGuySnaps []
   (and (= badGuyStatus "hasArtifact")
        (= toDestroy -1)
-       (and* (= toDestroy' (div (Cardinality livingGoodGuys) 2))
-             (= log' (conj log ["BadGuyStatus snaps"])))
+       (= toDestroy' (div (Cardinality livingGoodGuys) 2))
+       (= log' (conj log ["BadGuy snaps"]))
        (UNCHANGED [badGuyStatus livingGoodGuys])))
 
-(defn BadGuyStatusDestroys []
+(defn BadGuyDestroys []
   (and (> toDestroy 0)
        (E [hero livingGoodGuys]
-          (and (and* (= toDestroy' (- toDestroy 1))
-                     (= livingGoodGuys' (difference livingGoodGuys #{hero}))
-                     (= log' (conj log ["BadGuyStatus destroys: " hero])))
-               (UNCHANGED badGuyStatus)))))
+          (and (= toDestroy' (- toDestroy 1))
+               (= livingGoodGuys' (difference livingGoodGuys #{hero}))
+               (= log' (conj log ["BadGuy destroys: " hero]))
+               (UNCHANGED [badGuyStatus])))))
 
-(defn BadGuyStatusRetires []
+(defn BadGuyRetires []
   (and (= badGuyStatus "hasArtifact")
        (= 0 toDestroy)
-       (and* (= badGuyStatus' "retired")
-             (= log' (conj log ["BadGuyStatus retires"])))
+       (= badGuyStatus' "retired")
+       (= log' (conj log ["BadGuy retires"]))
        (UNCHANGED [toDestroy livingGoodGuys])))
 
-(defn BadGuyStatusDefeated []
+(defn BadGuyDefeated []
   (and (= badGuyStatus "retired")
        (E [hero1 livingGoodGuys]
           (and (contains? Strong hero1)
                (E [hero2 livingGoodGuys]
                   (and
                    (contains? Flight hero2)
-                   (and* (= badGuyStatus' "defeated")
-                         (= log' (conj log ["BadGuyStatus defeated by" hero1 hero2])))
+                   (= badGuyStatus' "defeated")
+                   (= log' (conj log ["BadGuy defeated by" hero1 hero2]))
                    (UNCHANGED [toDestroy livingGoodGuys])))))))
 
 (line-)
 
 (defn Init []
-  (and* (= badGuyStatus "alive")
-        (= livingGoodGuys GoodGuys)
-        (= log [])
-        (= toDestroy -1)))
+  (and (= badGuyStatus "alive")
+       (= livingGoodGuys GoodGuys)
+       (= log [])
+       (= toDestroy -1)))
 
 (defn Next []
   (or
-   (BadGuyStatusFights)
-   (BadGuyStatusSnaps)
-   (BadGuyStatusDestroys)
-   (BadGuyStatusRetires)
-   (BadGuyStatusDefeated)))
+   (BadGuyFights)
+   (BadGuySnaps)
+   (BadGuyDestroys)
+   (BadGuyRetires)
+   (BadGuyDefeated)))
 
 (line-)
 
@@ -97,11 +97,11 @@
   (and
    (Init)
    (always- (Next) vars)
-   (WF vars (BadGuyStatusFights))
-   (WF vars (BadGuyStatusSnaps))
-   (WF vars (BadGuyStatusDestroys))
-   (WF vars (BadGuyStatusRetires))
-   (WF vars (BadGuyStatusDefeated))))
+   (WF vars (BadGuyFights))
+   (WF vars (BadGuySnaps))
+   (WF vars (BadGuyDestroys))
+   (WF vars (BadGuyRetires))
+   (WF vars (BadGuyDefeated))))
 
 (defn End []
   (or (= livingGoodGuys #{})

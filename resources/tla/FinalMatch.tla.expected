@@ -19,52 +19,51 @@ TypesOk ==
     /\  toDestroy \in (Nat \union {-1})
 
 --------------------------------------------------------------------------------
-BadGuyStatusFights == 
+BadGuyFights == 
     /\  badGuyStatus # "defeated"
     /\  \E hero \in livingGoodGuys :
             /\  livingGoodGuys' = livingGoodGuys \ {hero}
             /\  IF  (hero = HasArtifact)
                 THEN 
                     /\  badGuyStatus' = "hasArtifact"
-                    /\  log' = (Append((Append(log, << 
-                                        "BadGuyStatus defeats: ", hero >>)), 
-                                    << "BadGuyStatus has stone" >>))
+                    /\  log' = (Append((Append(log, << "BadGuy defeats: ", 
+                                        hero >>)), << "BadGuy has stone" >>))
                     /\  UNCHANGED << toDestroy >>
                 ELSE 
-                    /\  log' = Append(log, << "BadGuyStatus defeats: ", hero >>)
+                    /\  log' = Append(log, << "BadGuy defeats: ", hero >>)
                     /\  UNCHANGED << badGuyStatus, toDestroy >>
 
-BadGuyStatusSnaps == 
+BadGuySnaps == 
     /\  badGuyStatus = "hasArtifact"
     /\  toDestroy = -1
     /\  toDestroy' = (Cardinality( livingGoodGuys ) \div 2)
-    /\  log' = Append(log, << "BadGuyStatus snaps" >>)
+    /\  log' = Append(log, << "BadGuy snaps" >>)
     /\  UNCHANGED << badGuyStatus, livingGoodGuys >>
 
-BadGuyStatusDestroys == 
+BadGuyDestroys == 
     /\  toDestroy > 0
     /\  \E hero \in livingGoodGuys :
             /\  toDestroy' = toDestroy - 1
             /\  livingGoodGuys' = livingGoodGuys \ {hero}
-            /\  log' = Append(log, << "BadGuyStatus destroys: ", hero >>)
-            /\  UNCHANGED badGuyStatus
+            /\  log' = Append(log, << "BadGuy destroys: ", hero >>)
+            /\  UNCHANGED << badGuyStatus >>
 
-BadGuyStatusRetires == 
+BadGuyRetires == 
     /\  badGuyStatus = "hasArtifact"
     /\  0 = toDestroy
     /\  badGuyStatus' = "retired"
-    /\  log' = Append(log, << "BadGuyStatus retires" >>)
+    /\  log' = Append(log, << "BadGuy retires" >>)
     /\  UNCHANGED << toDestroy, livingGoodGuys >>
 
-BadGuyStatusDefeated == 
+BadGuyDefeated == 
     /\  badGuyStatus = "retired"
     /\  \E hero1 \in livingGoodGuys :
             /\  hero1 \in Strong
             /\  \E hero2 \in livingGoodGuys :
                     /\  hero2 \in Flight
                     /\  badGuyStatus' = "defeated"
-                    /\  log' = Append(log, << "BadGuyStatus defeated by", 
-                                    hero1, hero2 >>)
+                    /\  log' = Append(log, << "BadGuy defeated by", hero1, 
+                                    hero2 >>)
                     /\  UNCHANGED << toDestroy, livingGoodGuys >>
 
 --------------------------------------------------------------------------------
@@ -75,21 +74,21 @@ Init ==
     /\  toDestroy = -1
 
 Next == 
-    \/  BadGuyStatusFights
-    \/  BadGuyStatusSnaps
-    \/  BadGuyStatusDestroys
-    \/  BadGuyStatusRetires
-    \/  BadGuyStatusDefeated
+    \/  BadGuyFights
+    \/  BadGuySnaps
+    \/  BadGuyDestroys
+    \/  BadGuyRetires
+    \/  BadGuyDefeated
 
 --------------------------------------------------------------------------------
 Spec == 
     /\  Init
     /\  [][Next]_vars
-    /\  WF_vars(BadGuyStatusFights)
-    /\  WF_vars(BadGuyStatusSnaps)
-    /\  WF_vars(BadGuyStatusDestroys)
-    /\  WF_vars(BadGuyStatusRetires)
-    /\  WF_vars(BadGuyStatusDefeated)
+    /\  WF_vars(BadGuyFights)
+    /\  WF_vars(BadGuySnaps)
+    /\  WF_vars(BadGuyDestroys)
+    /\  WF_vars(BadGuyRetires)
+    /\  WF_vars(BadGuyDefeated)
 
 End == 
     \/  livingGoodGuys = {}
