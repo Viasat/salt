@@ -33,64 +33,65 @@
              (seval/seval* (seval/make-context '[q'] m)))))
 
   (is (= '(and z'
-               (<= q' (+ 300 t')))
-         (->> '(and a
-                    (or b z')
-                    (or b
-                        (<= q' (+ 100 200 t'))))
-              (seval/seval* (seval/make-context '[z' t' q']
-                                                '{a true
-                                                  b false}))
-              seval/simplify)))
+               (<= q' (+ t' 300)))
+         (let [c (seval/make-context '[z' t' q']
+                                     '{a true
+                                       b false})]
+           (->> '(and a
+                      (or b z')
+                      (or b
+                          (<= q' (+ 100 200 t'))))
+                (seval/seval* c)
+                (seval/simplify c)))))
 
   (is (= '(or (let [x 1] false)
               (let [x 3] true)
               (let [x 2] true))
-         (->> '(E [x s]
-                  (>= x 2))
-              (seval/seval* (seval/make-context [] '{s #{1 2 3}}))
-              seval/simplify)))
+         (let [c (seval/make-context [] '{s #{1 2 3}})]
+           (->> '(E [x s]
+                    (>= x 2))
+                (seval/seval* c)
+                (seval/simplify c)))))
 
   (is (= '(or (and (= x' 2)
-                   (= y' (+ 201 x')))
+                   (= y' (+ x' 201)))
               (and (= x' 3)
-                   (= y' (+ 201 x'))))
+                   (= y' (+ x' 201))))
          (let [m '{a true
                    b false
                    x 100
                    y 200
                    s #{1 2 3}}]
-           (->> '(and (E [x s]
-                         (and (>= x 2)
-                              (= x' x)
-                              (and (= y' (+ 1 y x')))))
-                      (or a
-                          b
-                          (or c'
-                              (> x 9999))))
-                (seval/seval* (seval/make-context '[x' y' c'] m))
-                seval/simplify
-                (seval/seval* (seval/make-context '[x' y' c'] m))
-                seval/collapse-and-or))))
+           (let [c (seval/make-context '[x' y' c'] m)]
+             (->> '(and (E [x s]
+                           (and (>= x 2)
+                                (= x' x)
+                                (and (= y' (+ 1 y x')))))
+                        (or a
+                            b
+                            (or c'
+                                (> x 9999))))
+                  (seval/seval c))))))
 
-  (is (= '(and (>= 201 x')
-               (>= 203 x')
-               (>= 202 x'))
+  (is (= '(and (< x' 201)
+               (< x' 203)
+               (< x' 202))
          (let [m '{s #{1 2 3}
-                   x 100}]
+                   x 100}
+               c (seval/make-context '[x'] m)]
            (->> '(A [x s]
                     (and (> x 0)
                          (>= (+ x 200) x')))
-                (seval/seval* (seval/make-context '[x'] m))
-                seval/simplify))))
+                (seval/seval* c)
+                (seval/simplify c)))))
 
   (is (= '[true
            z'
            (or z'
                (or q' p'))]
-         [(seval/simplify '(or false z' true))
-          (seval/simplify '(and true z'))
-          (seval/simplify '(or (or false z') (or q' p')))]))
+         [(seval/simplify (seval/make-context [] {}) '(or false z' true))
+          (seval/simplify (seval/make-context [] {}) '(and true z'))
+          (seval/simplify (seval/make-context [] {}) '(or (or false z') (or q' p')))]))
 
   (is (= false
          (let [m '{foo (fn [r]
@@ -98,8 +99,8 @@
            (->> '(foo false)
                 (seval/seval* (seval/make-context  [] m))))))
 
-  (is (= '(or (= 200 (+ 101 x'))
-              (> false (+ 50 z'))
+  (is (= '(or (<= z' 50)
+              (= x' 99)
               10
               t')
          (let [m '{x 100
@@ -111,12 +112,11 @@
                              t'
                              (boo p q)))
                    boo (fn [a b]
-                         (and p (> q (+ r z'))))}]
+                         (and p (> x (+ r z'))))}
+               c (seval/make-context '[x' t' z'] m)]
            (->> '(or (= 200 (+ 1 x x'))
                      (foo 10))
-                (seval/seval* (seval/make-context '[x' t' z'] m))
-                seval/simplify
-                seval/collapse-and-or))))
+                (seval/seval c)))))
 
   (is (= false
          (let [m {'x 100
@@ -188,19 +188,21 @@
                 (seval/seval* (seval/make-context [] m))))))
 
   (is (= 'q'
-         (let [m {'x 1}]
+         (let [m {'x 1}
+               c (seval/make-context '[p' q'] m)]
            (->> '(if (> x 5)
                    p'
                    q')
-                (seval/seval* (seval/make-context '[p' q'] m))
-                seval/simplify))))
+                (seval/seval* c)
+                (seval/simplify c)))))
 
   (is (= false
-         (let [m {'x 1}]
+         (let [m {'x 1}
+               c (seval/make-context '[p' q'] m)]
            (->> '(cond (> x 5) p'
                        (> x 10) q')
-                (seval/seval* (seval/make-context '[p' q'] m))
-                seval/simplify))))
+                (seval/seval* c)
+                (seval/simplify c)))))
 
   (is (= '(and (> q' 3)
                (> q' 1)
@@ -221,12 +223,13 @@
               (let [x 1] false)
               (let [x 3] (> x' 3))
               (let [x 2] (> x' 2)))
-         (let [m {}]
+         (let [m {}
+               c (seval/make-context '[x'] m)]
            (->> '(E [x (Nat)]
                     (and (> x 1)
                          (> x' x)))
-                (seval/seval* (seval/make-context '[x'] m))
-                seval/simplify))))
+                (seval/seval* c)
+                (seval/simplify c)))))
 
   (is (= '(and (=> true x')
                (<=> true x'))
@@ -246,12 +249,13 @@
                (= x' 100)
                (= y' 200))
          (let [m {'x 100
-                  'y 200}]
+                  'y 200}
+               c (seval/make-context '[x' y' p'] m)]
            (->> '(and
                   (= p' 20)
                   (UNCHANGED [x y]))
-                (seval/seval* (seval/make-context '[x' y' p'] m))
-                seval/simplify
+                (seval/seval* c)
+                (seval/simplify c)
                 seval/collapse-and-or))))
 
   (is (= '(and (= a' 200)
@@ -271,15 +275,16 @@
            (->> '(= #{1 2} #{1 2})
                 (seval/seval* (seval/make-context  [] m))))))
 
-  (is (= '(or (let [x 1] (> 1 y'))
-              (let [x 4] (> 4 y'))
-              (let [x 3] (> 3 y'))
-              (let [x 2] (> 2 y')))
-         (let [m '{y 200}]
+  (is (= '(or (let [x 1] (<= y' 1))
+              (let [x 4] (<= y' 4))
+              (let [x 3] (<= y' 3))
+              (let [x 2] (<= y' 2)))
+         (let [m '{y 200}
+               c (seval/make-context '[y'] m)]
            (->> '(E [x (range* 1 4)]
                     (> x y'))
-                (seval/seval* (seval/make-context '[y'] m))
-                seval/simplify))))
+                (seval/seval* c)
+                (seval/simplify c)))))
 
   (is (= true
          (let [m {}]
@@ -316,11 +321,12 @@
 
   (is (= '(CHOOSE [x #{1 4 3 2}]
                   (> y' x))
-         (let [m '{y 200}]
+         (let [m '{y 200}
+               c (seval/make-context '[y'] m)]
            (->> '(CHOOSE [x (range* 1 4)]
                          (> y' x))
-                (seval/seval* (seval/make-context '[y'] m))
-                seval/simplify))))
+                (seval/seval* c)
+                (seval/simplify c)))))
 
   (is (= true
          (let [m {}]
@@ -457,7 +463,13 @@
                                {a' 11
                                 b' 21}
                                {a' 10
-                                b' 20}}))))
+                                b' 20}})))
+
+  (is (= '{a' 11}
+         (#'seval/delta-state-single '{a 10
+                                       b' 20}
+                                     '{a' 11
+                                       b 20}))))
 
 (deftest test-expand-CHOOSE
   (is (= :a2
@@ -511,5 +523,82 @@
              (seval/push-context {'z1 1000
                                   'z2 2000})
              (seval/resolve-in-context 'p)))))
+
+(deftest test-simplify
+  (is (= '(and (< c3 -6)
+               (< y3 -5)
+               (<= c2 28)
+               (<= z3 4)
+               (= (expt z2 2) 15)
+               (= b false)
+               (= c 28)
+               (= x 2)
+               (= y 5)
+               (= z 4)
+               (> y2 5)
+               (>= a -20))
+         (let [m {}
+               c (seval/make-context '[x y y2 y3 z z2 z3 a b c c2 c3] m)]
+           (->> '(and (= (- 25 x) (+ 20 3))
+                      (= (* 20 y) 100)
+                      (> (* 20 y2) 100)
+                      (< (* -2 y3) 10)
+                      (= (expt z 2) 16)
+                      (= (expt z2 2) 15)
+                      (<= (expt z3 2) 16)
+                      (< (- a) 20)
+                      (= (not b) true)
+                      (= (div c 4) 7)
+                      (<= (div c2 4) 7)
+                      (> (div c3 -2) 3))
+                (seval/seval c)))))
+
+  (is (= '(or (= x #{1 4})
+              (= y #{1 4 3 2})
+              (subset? #{2} z))
+         (let [m {}
+               c (seval/make-context '[x y y2 y3 z a b c c2 c3] m)]
+           (->> '(or (= #{1 2 3 4} (union #{2 3} x))
+                     (= #{1 3} (difference y #{2 4}))
+                     (= #{1 3} (difference #{1 2 3} z))
+                     (= #{4} (difference #{1 2 3} a)))
+                (seval/seval c))))))
+
+(defn foo [x]
+  (when (> x 10)
+    (inc x)))
+
+(defn bar [x]
+  (when (> x 5)
+    (dec x)))
+
+(defn baz [x]
+  (when (> x 2)
+    (* x 2)))
+
+(deftest test-rules->>
+  (is (= 21
+         (seval/rule->> 20
+                        foo
+                        bar
+                        baz)))
+
+  (is (= 9
+         (seval/rule->> 10
+                        foo
+                        bar
+                        baz)))
+
+  (is (= 10
+         (seval/rule->> 5
+                        foo
+                        bar
+                        baz)))
+
+  (is (= 0
+         (seval/rule->> 0
+                        foo
+                        bar
+                        baz))))
 
 ;; (time (run-tests))

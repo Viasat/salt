@@ -424,40 +424,231 @@
 
 ;;
 
-(defn simplify [e]
+(defn- simplify-binary-commutative [context f inverse-f op-f e]
+  (let [[op x y & more] e]
+    (when (and (not (nil? x))
+               (not (nil? y))
+               (empty? more)
+               (expr-with-free-vars? context x)
+               (not (expr-with-free-vars? context y))
+               (listy? x))
+      (let [[x_op x_arg1 x_arg2 & more2] x]
+        (when (and (= f x_op)
+                   (not (nil? x_arg1))
+                   (not (nil? x_arg2))
+                   (empty? more2)
+                   (expr-with-free-vars? context x_arg1)
+                   (not (expr-with-free-vars? context x_arg2)))
+          `(~(op-f op x_arg2) ~x_arg1 (~inverse-f ~y ~x_arg2)))))))
+
+(defn- simplify-unary-minus [context e]
+  (let [[op x y & more] e]
+    (when (and (not (nil? x))
+               (not (nil? y))
+               (empty? more)
+               (expr-with-free-vars? context x)
+               (not (expr-with-free-vars? context y))
+               (listy? x))
+      (let [[x_op x_arg1 & more2] x]
+        (when (and (= '- x_op)
+                   (not (nil? x_arg1))
+                   (empty? more2)
+                   (expr-with-free-vars? context x_arg1))
+          `(~(condp = op
+               '> '<=
+               '>= '<
+               '< '>=
+               '<= '>
+               op) ~x_arg1 (~'- ~y)))))))
+
+(defn- simplify-difference-on-right [context e]
+  (let [[op x y & more] e]
+    (when (and (= op '=)
+               (not (nil? x))
+               (not (nil? y))
+               (empty? more)
+               (expr-with-free-vars? context x)
+               (not (expr-with-free-vars? context y))
+               (listy? x))
+      (let [[x_op x_arg1 x_arg2 & more2] x]
+        (when (and (= 'difference x_op)
+                   (not (nil? x_arg1))
+                   (empty? more2)
+                   (expr-with-free-vars? context x_arg2))
+          (if (and (set? y)
+                   (set? x_arg1)
+                   (subset? y x_arg1))
+            `(~'subset? ~(difference x_arg1 y) ~x_arg2)
+            false))))))
+
+(defn- simplify-expt [context e]
+  (let [[op x y & more] e]
+    (when (and (not (nil? x))
+               (not (nil? y))
+               (empty? more)
+               (expr-with-free-vars? context x)
+               (not (expr-with-free-vars? context y))
+               (listy? x))
+      (let [[x_op x_arg1 x_arg2 & more2] x]
+        (when (and (= 'expt x_op)
+                   (not (nil? x_arg2))
+                   (empty? more2)
+                   (number? x_arg2)
+                   (number? y)
+                   (expr-with-free-vars? context x_arg1))
+          (let [answer? (expt y (/ 1 x_arg2))]
+            (when (and (= 0.0
+                          (- answer? (int answer?)))
+                       (= 0.0
+                          (- y (expt answer? x_arg2))))
+              `(~op ~x_arg1 ~(int answer?)))))))))
+
+(defn- simplify-move-free-to-left [context e]
+  (let [[op x y & args] e]
+    (when (and (not (nil? x))
+               (not (nil? y))
+               (empty? args)
+               (expr-with-free-vars? context y)
+               (not (expr-with-free-vars? context x)))
+      (apply list (condp = op
+                    '> '<=
+                    '>= '<
+                    '< '>=
+                    '<= '>
+                    op) [y x]))))
+
+(defn- simplify-not [context e]
+  (let [[op x y & more] e]
+    (when (and (not (nil? x))
+               (not (nil? y))
+               (empty? more)
+               (expr-with-free-vars? context x)
+               (not (expr-with-free-vars? context y))
+               (listy? x))
+      (let [[x_op x_arg1 & more2] x]
+        (when (and (= 'not x_op)
+                   (not (nil? x_arg1))
+                   (empty? more2)
+                   (expr-with-free-vars? context x_arg1))
+          `(~'= ~x_arg1 (~'not ~y)))))))
+
+(defn- simplify-binary-minus [context e]
+  (let [[_ x y & more] e]
+    (when (and (not (nil? x))
+               (not (nil? y))
+               (empty? more)
+               (expr-with-free-vars? context y)
+               (not (expr-with-free-vars? context x))
+               (not (and (listy? y)
+                         (= '- (first y)))))
+      `(~'+ ~x (~'- ~y)))))
+
+(defn- flip-inequality [op x]
+  (if (neg? x)
+    (condp = op
+      '> '<
+      '> '<
+      '<= '>=
+      '>= '<=
+      op)
+    op))
+
+(defn- op-unchanged [op x]
+  op)
+
+(defmacro rule->>
+  "Return the first non-nil produced by invoking each of the rules on e in order. If none, then return
+  e."
+  [e rule & more]
+  `(loop [rule# ~rule
+          more# ~(vec more)]
+     (let [r# (rule# ~e)]
+       (if (or (empty? more#)
+               (not (nil? r#)))
+         (if (nil? r#)
+           ~e
+           r#)
+         (recur (first more#) (rest more#))))))
+
+(defn simplify [context e]
   (cond
-    (listy? e) (let [args (vec (map simplify (rest e)))]
-                 (condp = (first e)
-                   'and (let [args (remove true? args)]
-                          (if (some false? args)
-                            false
-                            (if (empty? args)
-                              true
-                              (if (= 1 (count args))
-                                (first args)
-                                (apply list 'and args)))))
-                   'or (let [args (remove false? args)]
-                         (if (empty? args)
-                           false
-                           (if (some true? args)
-                             true
-                             (if (= 1 (count args))
-                               (first args)
-                               (apply list 'or args)))))
-                   '+ (let [{numbers true
-                             other false} (group-by number? (rest e))
-                            total (apply + numbers)]
-                        (if (and (zero? total)
-                                 (= 1 (count other)))
-                          (first other)
-                          (if (zero? total)
-                            (apply list '+ other)
-                            (apply list '+ total other))))
-                   (apply list (first e) args)))
+    (listy? e) (let [args (vec (map (partial simplify context) (rest e)))
+                     [op] e]
+                 (cond
+                   (= 'and op)
+                   (let [args (remove true? args)]
+                     (if (some false? args)
+                       false
+                       (if (empty? args)
+                         true
+                         (if (= 1 (count args))
+                           (first args)
+                           (apply list 'and args)))))
+
+                   (= 'or op)
+                   (let [args (remove false? args)]
+                     (if (empty? args)
+                       false
+                       (if (some true? args)
+                         true
+                         (if (= 1 (count args))
+                           (first args)
+                           (apply list 'or args)))))
+
+                   (= '+ op)
+                   (let [e (rule->> (apply list op args)
+                                    (partial simplify-move-free-to-left context))
+                         {numbers true
+                          other false} (group-by number? (rest e))
+                         total (apply + numbers)]
+                     (if (and (zero? total)
+                              (= 1 (count other)))
+                       (first other)
+                       (if (zero? total)
+                         (apply list '+ other)
+                         (apply list '+ (into other [total])))))
+
+                   (= '* op)
+                   (rule->> (apply list op args)
+                            (partial simplify-move-free-to-left context))
+
+                   (= 'union op)
+                   (rule->> (apply list op args)
+                            (partial simplify-move-free-to-left context))
+
+                   (= '- op)
+                   (rule->> (apply list op args)
+                            (partial simplify-binary-minus context))
+
+                   (#{'= 'not=} op)
+                   (rule->> (apply list op args)
+                            (partial simplify-move-free-to-left context)
+                            (partial simplify-binary-commutative context 'union 'difference op-unchanged)
+                            (partial simplify-binary-commutative context 'difference 'union op-unchanged)
+                            (partial simplify-difference-on-right context)
+                            (partial simplify-binary-commutative context '+ '- op-unchanged)
+                            (partial simplify-binary-commutative context '- '+ op-unchanged)
+                            (partial simplify-binary-commutative context '* 'div op-unchanged)
+                            (partial simplify-binary-commutative context 'div '* op-unchanged)
+                            (partial simplify-expt context)
+                            (partial simplify-unary-minus context)
+                            (partial simplify-not context))
+                   (#{'< '<= '> '>=} op)
+                   (rule->> (apply list op args)
+                            (partial simplify-move-free-to-left context)
+                            (partial simplify-binary-commutative context '+ '- op-unchanged)
+                            (partial simplify-binary-commutative context '- '+ op-unchanged)
+                            (partial simplify-binary-commutative context '* 'div flip-inequality)
+                            (partial simplify-binary-commutative context 'div '* flip-inequality)
+                            (partial simplify-expt context)
+                            (partial simplify-unary-minus context))
+
+                   :default
+                   (apply list op args)))
     (symbol? e) e
-    (set? e) (set (map simplify e))
-    (map? e) (process-map simplify e)
-    (vector? e) (vec (map simplify e))
+    (set? e) (set (map (partial simplify context) e))
+    (map? e) (process-map (partial simplify context) e)
+    (vector? e) (vec (map (partial simplify context) e))
     (string? e) e
     (number? e) e
     (keyword? e) e
@@ -514,7 +705,7 @@
     (let [f (fn [e]
               (->> e
                    (seval* context)
-                   simplify
+                   (simplify context)
                    collapse-and-or))]
       (loop [last e
              current (f e)
@@ -531,6 +722,7 @@
       (condp = op
         'defn {id `(~'fn ~binding ~(last body))}
         'def {id binding}
+        'VARIABLE {op (rest x)}
         nil))))
 
 (defn load-text
@@ -582,9 +774,15 @@
     (simple-or? e) (or-to-state ks e)
     :default e))
 
+(defn- prime-variable? [x]
+  (and (symbol? x)
+       (.endsWith (name x) "'")))
+
 (defn- delta-state-single [s-ref s-new]
   (reduce merge {} (for [k' (keys s-new)]
-                     (let [k (symbol (apply str (butlast (name k'))))]
+                     (let [k (if (prime-variable? k')
+                               (symbol (apply str (butlast (name k'))))
+                               (symbol (str (name k') "'")))]
                        (when-not (= (s-ref k) (s-new k'))
                          {k' (s-new k')})))))
 
@@ -599,24 +797,29 @@
 
 (defn check-action*
   [src-file-name constants state e result-formatting vs-to-omit]
-  (let [vs (keys state)
+  (let [defs-from-file (load-text (slurp src-file-name))
+        vs (->> (get defs-from-file 'VARIABLE)
+                (filter symbol?))
         prime-vs (->> vs
                       (map #(symbol (str (name %) "'")))
                       vec)
-        trimmed-prime-vs (->> (set/difference (set vs) (set vs-to-omit))
-                              (map #(symbol (str (name %) "'")))
-                              vec)
-        context (make-context prime-vs (merge (load-text (slurp src-file-name))
-                                              constants
-                                              state
-                                              `{~'VARS- ~vs}))
-        result (->> e
-                    (seval context))]
+        free-vs (set/difference (set/union (set vs) (set prime-vs)) (keys state))
+        trimmed-free-vs (-> (set free-vs)
+                            (set/difference (set vs-to-omit))
+                            (set/difference (->> vs-to-omit
+                                                 (map #(symbol (str (name %) "'")))
+                                                 set)))
+        context (make-context free-vs (merge (dissoc defs-from-file 'VARIABLE)
+                                             constants
+                                             state
+                                             `{~'VARS- ~vs}))
+        result (seval context e)]
+
     (condp = result-formatting
       :raw result
-      :states (to-state trimmed-prime-vs)
+      :states (to-state trimmed-free-vs)
       :delta (->> result
-                  (to-state trimmed-prime-vs)
+                  (to-state trimmed-free-vs)
                   (delta-state state)))))
 
 (defmacro check-action [src-file-name constants state e result-formatting & arg]
