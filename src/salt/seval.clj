@@ -432,14 +432,14 @@
                (expr-with-free-vars? context x)
                (not (expr-with-free-vars? context y))
                (listy? x))
-      (let [[x_op x_arg1 x_arg2 & more2] x]
-        (when (and (= f x_op)
-                   (not (nil? x_arg1))
-                   (not (nil? x_arg2))
+      (let [[x-op x-arg1 x-arg2 & more2] x]
+        (when (and (= f x-op)
+                   (not (nil? x-arg1))
+                   (not (nil? x-arg2))
                    (empty? more2)
-                   (expr-with-free-vars? context x_arg1)
-                   (not (expr-with-free-vars? context x_arg2)))
-          `(~(op-f op x_arg2) ~x_arg1 (~inverse-f ~y ~x_arg2)))))))
+                   (expr-with-free-vars? context x-arg1)
+                   (not (expr-with-free-vars? context x-arg2)))
+          `(~(op-f op x-arg2) ~x-arg1 (~inverse-f ~y ~x-arg2)))))))
 
 (defn- simplify-unary-minus [context e]
   (let [[op x y & more] e]
@@ -449,17 +449,17 @@
                (expr-with-free-vars? context x)
                (not (expr-with-free-vars? context y))
                (listy? x))
-      (let [[x_op x_arg1 & more2] x]
-        (when (and (= '- x_op)
-                   (not (nil? x_arg1))
+      (let [[x-op x-arg1 & more2] x]
+        (when (and (= '- x-op)
+                   (not (nil? x-arg1))
                    (empty? more2)
-                   (expr-with-free-vars? context x_arg1))
+                   (expr-with-free-vars? context x-arg1))
           `(~(condp = op
                '> '<=
                '>= '<
                '< '>=
                '<= '>
-               op) ~x_arg1 (~'- ~y)))))))
+               op) ~x-arg1 (~'- ~y)))))))
 
 (defn- simplify-difference-on-right [context e]
   (let [[op x y & more] e]
@@ -470,16 +470,58 @@
                (expr-with-free-vars? context x)
                (not (expr-with-free-vars? context y))
                (listy? x))
-      (let [[x_op x_arg1 x_arg2 & more2] x]
-        (when (and (= 'difference x_op)
-                   (not (nil? x_arg1))
+      (let [[x-op x-arg1 x-arg2 & more2] x]
+        (when (and (= 'difference x-op)
+                   (not (nil? x-arg1))
                    (empty? more2)
-                   (expr-with-free-vars? context x_arg2))
-          (if (and (set? y)
-                   (set? x_arg1)
-                   (subset? y x_arg1))
-            `(~'subset? ~(difference x_arg1 y) ~x_arg2)
-            false))))))
+                   (expr-with-free-vars? context x-arg2))
+          (when (and (set? y)
+                     (set? x-arg1))
+            (if (subset? y x-arg1)
+              `(~'subset? ~(difference x-arg1 y) ~x-arg2)
+              false)))))))
+
+(defn- simplify-into-on-right [context e]
+  (let [[op x y & more] e]
+    (when (and (= op '=)
+               (not (nil? x))
+               (not (nil? y))
+               (empty? more)
+               (expr-with-free-vars? context x)
+               (not (expr-with-free-vars? context y))
+               (listy? x))
+      (let [[x-op x-arg1 x-arg2 & more2] x]
+        (when (and (= 'into x-op)
+                   (not (nil? x-arg1))
+                   (empty? more2)
+                   (expr-with-free-vars? context x-arg2))
+          (when (and (vector? y)
+                     (vector? x-arg1))
+            (if (= (take (count x-arg1) y)
+                   x-arg1)
+              `(~'= ~x-arg2 ~(vec (drop (count x-arg1) y)))
+              false)))))))
+
+(defn- simplify-into-on-left [context e]
+  (let [[op x y & more] e]
+    (when (and (= op '=)
+               (not (nil? x))
+               (not (nil? y))
+               (empty? more)
+               (expr-with-free-vars? context x)
+               (not (expr-with-free-vars? context y))
+               (listy? x))
+      (let [[x-op x-arg1 x-arg2 & more2] x]
+        (when (and (= 'into x-op)
+                   (not (nil? x-arg2))
+                   (empty? more2)
+                   (expr-with-free-vars? context x-arg1))
+          (when (and (vector? y)
+                     (vector? x-arg2))
+            (if (= (drop (- (count y) (count x-arg2)) y)
+                   x-arg2)
+              `(~'= ~x-arg1 ~(vec (take (- (count y) (count x-arg2)) y)))
+              false)))))))
 
 (defn- simplify-expt [context e]
   (let [[op x y & more] e]
@@ -489,19 +531,19 @@
                (expr-with-free-vars? context x)
                (not (expr-with-free-vars? context y))
                (listy? x))
-      (let [[x_op x_arg1 x_arg2 & more2] x]
-        (when (and (= 'expt x_op)
-                   (not (nil? x_arg2))
+      (let [[x-op x-arg1 x-arg2 & more2] x]
+        (when (and (= 'expt x-op)
+                   (not (nil? x-arg2))
                    (empty? more2)
-                   (number? x_arg2)
+                   (number? x-arg2)
                    (number? y)
-                   (expr-with-free-vars? context x_arg1))
-          (let [answer? (expt y (/ 1 x_arg2))]
+                   (expr-with-free-vars? context x-arg1))
+          (let [answer? (expt y (/ 1 x-arg2))]
             (when (and (= 0.0
                           (- answer? (int answer?)))
                        (= 0.0
-                          (- y (expt answer? x_arg2))))
-              `(~op ~x_arg1 ~(int answer?)))))))))
+                          (- y (expt answer? x-arg2))))
+              `(~op ~x-arg1 ~(int answer?)))))))))
 
 (defn- simplify-move-free-to-left [context e]
   (let [[op x y & args] e]
@@ -525,12 +567,12 @@
                (expr-with-free-vars? context x)
                (not (expr-with-free-vars? context y))
                (listy? x))
-      (let [[x_op x_arg1 & more2] x]
-        (when (and (= 'not x_op)
-                   (not (nil? x_arg1))
+      (let [[x-op x-arg1 & more2] x]
+        (when (and (= 'not x-op)
+                   (not (nil? x-arg1))
                    (empty? more2)
-                   (expr-with-free-vars? context x_arg1))
-          `(~'= ~x_arg1 (~'not ~y)))))))
+                   (expr-with-free-vars? context x-arg1))
+          `(~'= ~x-arg1 (~'not ~y)))))))
 
 (defn- simplify-binary-minus [context e]
   (let [[_ x y & more] e]
@@ -632,7 +674,10 @@
                             (partial simplify-binary-commutative context 'div '* op-unchanged)
                             (partial simplify-expt context)
                             (partial simplify-unary-minus context)
-                            (partial simplify-not context))
+                            (partial simplify-not context)
+                            (partial simplify-into-on-right context)
+                            (partial simplify-into-on-left context))
+
                    (#{'< '<= '> '>=} op)
                    (rule->> (apply list op args)
                             (partial simplify-move-free-to-left context)

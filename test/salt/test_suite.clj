@@ -721,6 +721,14 @@ multi line comment")
          #{1 2 3}
          "DOMAIN << 10, 20, 30 >>"
          "1..3"
+         true)
+
+  (check "Convert a vector to a set"
+         '(map* (fn [i] (get* [10 20 30] i)) (DOMAIN [10 20 30]))
+         #{20 30 10}
+         "{ << 10, 20, 30 >>[i] :
+    i \\in DOMAIN << 10, 20, 30 >> }"
+         "{10, 20, 30}"
          true))
 
 (deftest test-maps

@@ -562,7 +562,30 @@
                      (= #{1 3} (difference y #{2 4}))
                      (= #{1 3} (difference #{1 2 3} z))
                      (= #{4} (difference #{1 2 3} a)))
-                (seval/seval c))))))
+                (seval/seval c)))))
+
+  (is (= '(= x [30 40])
+         (let [m {}
+               c (seval/make-context '[x])]
+           (seval/seval c '(= [10 20 30 40] (into [10 20] x))))))
+  (is (= false
+         (let [m {}
+               c (seval/make-context '[x])]
+           (seval/seval c '(= [10 15 20 30 40] (into [10 20] x))))))
+  (is (= '(= (into [10 20] x) #{1 2})
+         (let [m {}
+               c (seval/make-context '[x])]
+           (seval/seval c '(= #{1 2} (into [10 20] x))))))
+
+  (is (= false
+         (let [m {}
+               c (seval/make-context '[x])]
+           (seval/seval c '(= [10 20 30 40] (into x [10 20]))))))
+
+  (is (= '(= x [10 20])
+         (let [m {}
+               c (seval/make-context '[x])]
+           (seval/seval c '(= [10 20 30 40] (into x [30 40])))))))
 
 (defn foo [x]
   (when (> x 10)

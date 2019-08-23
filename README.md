@@ -660,6 +660,13 @@ Compute all of the indexes present in a vector
 | code | `(DOMAIN [10 20 30])` | `DOMAIN << 10, 20, 30 >>` |
 | result | `#{1 3 2}` | `1..3` |
 
+Convert a vector to a set
+
+|  | salt | tla+ |
+| --- | --- | --- |
+| code | `(map* (fn [i] (get* [10 20 30] i)) (DOMAIN [10 20 30]))` | `{ << 10, 20, 30 >>[i] :`<br>`    i \\in DOMAIN << 10, 20, 30 >> }` |
+| result | `#{20 30 10}` | `{10, 20, 30}` |
+
 Maps
 ----
 Use 'maps-' to generate all possible maps for a set of possible keys and a set of possible values.

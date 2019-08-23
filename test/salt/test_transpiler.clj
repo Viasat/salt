@@ -679,6 +679,12 @@ line 3")
   (is (= "<< 1, 3 >> \\in (Seq( { 1, 4, 3, 2, 5 } ))"
          (transpiler/transpile-single-form '(every?* #{1 2 3 4 5} [1 3])))))
 
+(deftest test-tuple-to-seq
+  (is (= "s == << 10, 2, 30, 4 >>\n\n{ s[i] :\n    i \\in DOMAIN s }"
+         (do (transpiler/reset)
+             (transpiler/transpile-form '(def s [10 2 30 4]))
+             (transpiler/transpile-form '(map* (fn [i] (get* s i)) (DOMAIN s)))))))
+
 ;; test full specs
 
 (defn- expected-file-name [spec-name]
