@@ -3,7 +3,7 @@
   (:require [clojure.string :as string]
             [clojure.set :as set]
             [salt.lang :as lang]
-            [salt.state :as state]))
+            [salt.transpiler-state :as state]))
 
 ;; helper functions
 

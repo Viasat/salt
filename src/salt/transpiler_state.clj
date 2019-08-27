@@ -1,4 +1,4 @@
-(ns salt.state
+(ns salt.transpiler-state
   "Keeps track of the state as salt source is transpiled into TLA+."
   (:require [clojure.set :as set]))
 

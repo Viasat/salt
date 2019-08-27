@@ -2,8 +2,8 @@
   (:require [clojure.data :as data]
             [clojure.set :as set]
             [clojure.test :refer :all]
+            [salt]
             [salt.lang :refer :all]
-            [salt.seval :as seval]
             [salt.transpiler :as transpiler]
             [tlaplus.Integers :refer :all]
             [tlaplus.Sequences :refer :all]))
@@ -697,7 +697,7 @@ line 3")
   (spit (expected-file-name spec-name) (slurp (actual-file-name spec-name))))
 
 (defn check-spec [spec-name]
-  (spit (actual-file-name spec-name) (transpiler/transpile-text (slurp (str "src/" spec-name ".clj"))))
+  (spit (actual-file-name spec-name) (salt/transpile (str "test/" spec-name ".clj")))
   (is (= (slurp (expected-file-name spec-name))
          (slurp (actual-file-name spec-name)))))
 

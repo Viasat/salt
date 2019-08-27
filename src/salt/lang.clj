@@ -318,7 +318,3 @@ clojure changed tla+
                   X    : foo
 
 ")
-
-(defmacro with-state [constants state & body]
-  `(with-redefs ~(into [] (mapcat identity (merge constants state)))
-     ~@body))

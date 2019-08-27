@@ -1018,7 +1018,7 @@ multi line comment")
 (deftest test-main
   (is (.startsWith
        (with-out-str
-         (main/-main "src/TwoPhase.clj"))
+         (main/-main "test/TwoPhase.clj"))
        "---------------------------- MODULE TwoPhase ----------------------------")))
 
 (defn produce-docs []
@@ -1042,7 +1042,7 @@ multi line comment")
         doc-template (slurp "resources/README.md.template")]
     (spit "README.md" (-> doc-template
                           (string/replace "@docs" doc-str)
-                          (string/replace "@example-salt" (slurp "src/TwoPhase.clj"))
+                          (string/replace "@example-salt" (slurp "test/TwoPhase.clj"))
                           (string/replace "@example-tla" (slurp "resources/tla/TwoPhase.tla.expected"))))))
 
 ;; (run-tests)
