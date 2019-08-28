@@ -455,6 +455,28 @@ H == DOMAIN Foo\n\n"
          (transpiler/transpile-single-form '(not (contains? #{10} 20)))))
   (is (= "{10} \\subseteq {20}"
          (transpiler/transpile-single-form '(subset? #{10} #{20}))))
+
+  (is (subset? #{10} #{10}))
+  (is (not (subset-proper? #{10} #{10})))
+  (is (superset? #{10} #{10}))
+  (is (not (superset-proper? #{10} #{10})))
+
+  (is (subset? #{10} #{10 20}))
+  (is (subset-proper? #{10} #{10 20}))
+  (is (not (superset? #{10} #{10 20})))
+  (is (not (superset-proper? #{10} #{10 20})))
+
+  (is (not (subset? #{10 20} #{10})))
+  (is (not (subset-proper? #{10 20} #{10})))
+  (is (superset? #{10 20} #{10}))
+  (is (superset-proper? #{10 20} #{10}))
+
+  (is (= "{10} \\subset {20}"
+         (transpiler/transpile-single-form '(subset-proper? #{10} #{20}))))
+  (is (= "{10} \\supseteq {20}"
+         (transpiler/transpile-single-form '(superset? #{10} #{20}))))
+  (is (= "{10} \\supset {20}"
+         (transpiler/transpile-single-form '(superset-proper? #{10} #{20}))))
   (is (= "{10} \\union {20}"
          (transpiler/transpile-single-form '(union #{10} #{20}))))
   (is (= "{10} \\intersect {20}"

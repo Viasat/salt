@@ -2,8 +2,7 @@
   (:require [clojure.algo.generic.functor :refer [fmap]]
             [clojure.math.numeric-tower :as numeric-tower]
             [clojure.set :as set]
-            [clojure.string :as string])
-  (:import [java.util Random]))
+            [clojure.string :as string]))
 
 (defn- CONSTANT-f [x]
   (when (symbol? x)
@@ -28,23 +27,6 @@
   `(every? #(= % true) (map (fn [~x]
                               ~body) ~s)))
 
-(def ^:dynamic *rand-seed-atom* (atom (rand-int Integer/MAX_VALUE)))
-
-(defmacro with-rand-seed [n & body]
-  `(binding [*rand-seed-atom* (atom ~n)]
-     ~@body))
-
-(defn rand-int* [n]
-  (let [r (Random. @*rand-seed-atom*)
-        result (.nextInt r n)
-        new-seed (.nextInt r Integer/MAX_VALUE)]
-    (reset! *rand-seed-atom* new-seed)
-    result))
-
-(defn rand-nth*
-  [coll]
-  (nth coll (rand-int* (count coll))))
-
 (defmacro E [[x s] body]
   `(let [f# (fn [~x]
               ~body)
@@ -52,7 +34,7 @@
                              (when (true? r#)
                                %)) ~s)]
      (if (pos? (count choices#))
-       (boolean (rand-nth* choices#))
+       true
        false)))
 
 (defmacro ASSUME [body]
@@ -286,8 +268,19 @@
 (defn union [& args]
   (apply set/union args))
 
-(defn subset? [& args]
-  (apply set/subset? args))
+(defn subset? [x y]
+  (set/subset? x y))
+
+(defn subset-proper? [x y]
+  (and (set/subset? x y)
+       (not (= x y))))
+
+(defn superset? [x y]
+  (set/superset? x y))
+
+(defn superset-proper? [x y]
+  (and (set/superset? x y)
+       (not (= x y))))
 
 (defn intersection [& args]
   (apply set/intersection args))

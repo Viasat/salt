@@ -59,86 +59,89 @@ The following identifiers are reserved for the salt language.
 
 Identifiers from the Clojure language:
 
-```ns```
-```require```
-```comment```
-```if```
-```let```
-```cond```
 ```and```
-```or```
-```not```
-```expt```
-```difference```
-```union```
-```intersection```
-```subset?```
-```contains?```
-```select```
-```first```
-```rest```
-```into```
-```str```
-```count```
+```comment```
+```cond```
 ```conj```
-```defn```
+```contains?```
+```count```
 ```def```
+```defn```
+```difference```
+```expt```
+```first```
 ```fn```
+```if```
+```intersection```
+```into```
+```let```
+```ns```
+```not```
+```or```
+```require```
+```rest```
+```select```
+```str```
+```subset?```
+```superset?```
+```union```
 
 Identifiers from the Clojure language, whose semantics were modified to match TLA+:
 
-```mod*```
-```range*```
-```map*```
 ```every?*```
 ```get*```
+```map*```
+```mod*```
+```range*```
 
 Identifiers that were added specifically to support transpiling, they are neither part of Clojure nor TLA+:
 
-```CHANGED-```
-```VARS-```
-```line-```
 ```always-```
-```eventually-```
-```leads-to-```
-```fm-```
+```CHANGED-```
 ```defm-```
+```eventually-```
+```fm-```
+```leads-to-```
+```line-```
 ```maps-```
+```subset-proper?```
+```superset-proper?```
+```VARS-```
 
 Identifiers from the TLA+ language:
 
-```CONSTANT```
-```ASSUME```
-```VARIABLE```
-```UNCHANGED```
 ```==```
 ```=>```
 ```<=>```
 ```=```
-```not=```
 ```>```
 ```<```
 ```>=```
 ```<=```
-```E```
-```A```
-```WF```
-```SF```
 ```+```
 ```-```
 ```*```
-```div```
-```Nat```
-```X```
-```UNION```
-```SUBSET```
+```A```
+```ASSUME```
 ```Cardinality```
 ```CHOOSE```
-```SubSeq```
+```CONSTANT```
+```div```
+```DOMAIN```
+```E```
+```EXCEPT```
+```Nat```
+```not=```
+```UNCHANGED```
+```UNION```
 ```SelectSeq```
 ```Seq```
-```EXCEPT```
-```DOMAIN```
+```SF```
+```SubSeq```
+```SUBSET```
+```VARIABLE```
+```WF```
+```X```
 
 # Clojure to TLA Concepts
 
@@ -151,6 +154,10 @@ Identifiers from the TLA+ language:
 | function | ```(defn Add [x y] (+ 1 2))```| operator | ```Add( x, y ) == x + y```|
 | lambda | ```(fn [x] (> x 2))``` | lambda in SelectSeq | ```LAMBDA  x: (x > 2)``` |
 | lambda | ```#(* 2 %)``` | lambda in Except| ```@ * 2``` |
+
+Technically a TLA+ operator is better understood as a Clojure macro rather than a Clojure function. However, since Clojure functions are easier to write and higher order functions are very natural to write, the decision was taken to model TLA+ operators as Clojure functions. This does not cause issues because the functions are never applied without having all of the variables bound, so that whether they are applied or structurally substituted at that point does not matter.
+
+In a way TLA+ functions might be usefully considered as Clojure functions. But, of course Clojure maps can be used as Clojure functions.
 
 # Standard Modules
 

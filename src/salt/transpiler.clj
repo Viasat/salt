@@ -653,6 +653,15 @@
 (defmethod transpile-list 'subset? [x]
   (binary-operator x "\\subseteq"))
 
+(defmethod transpile-list 'subset-proper? [x]
+  (binary-operator x "\\subset"))
+
+(defmethod transpile-list 'superset? [x]
+  (binary-operator x "\\supseteq"))
+
+(defmethod transpile-list 'superset-proper? [x]
+  (binary-operator x "\\supset"))
+
 (defmethod transpile-list 'SUBSET [x]
   (unary-operator x "SUBSET"))
 

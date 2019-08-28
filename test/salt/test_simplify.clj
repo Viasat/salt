@@ -469,7 +469,37 @@
          (#'simplify/delta-state-single '{a 10
                                           b' 20}
                                         '{a' 11
-                                          b 20}))))
+                                          b 20})))
+
+  (is (= '(+ 1 x)
+         (#'simplify/to-state [] '(+ 1 x))))
+
+  (is (= '(and (+ 1 x)
+               (= x' 100))
+         (#'simplify/to-state [] '(and (+ 1 x)
+                                       (= x' 100)))))
+
+  (is (= '(and (+ 1 x)
+               (= x' 100))
+         (#'simplify/delta-state '{x 2} '(and (+ 1 x)
+                                              (= x' 100)))))
+
+  (is (= '{x' 100}
+         (->> '(and (= y' 3)
+                    (= x' 100))
+              (#'simplify/to-state '[x' y'])
+              (#'simplify/delta-state '{x 2
+                                        y 3}))))
+
+  (is (= '#{{y' 300}
+            {x' 100}}
+         (->> '(or (and (= y' 3)
+                        (= x' 100))
+                   (and (= y' 300)
+                        (= x' 2)))
+              (#'simplify/to-state '[x' y'])
+              (#'simplify/delta-state '{x 2
+                                        y 3})))))
 
 (deftest test-expand-CHOOSE
   (is (= :a2
@@ -677,5 +707,26 @@
                            foo
                            bar
                            baz))))
+
+(deftest test-simulate
+  (is (= '#{{y' 201
+             x' 2}
+            {y' 201
+             x' 3}}
+         (salt/with-rand-seed 20
+           (->> '(and (E [x s]
+                         (and (>= x 2)
+                              (= x' x)
+                              (and (= y' (+ 1 y)))))
+                      (or a
+                          b
+                          (or c'
+                              (> x 9999))))
+                (simplify/simulate** '[x' y' c'] '{a true
+                                                   b false
+                                                   s #{1 2 3}}
+                                     '{x 100
+                                       y 200}
+                                     10))))))
 
 ;; (time (run-tests))

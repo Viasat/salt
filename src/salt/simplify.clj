@@ -3,7 +3,8 @@
             [salt.lang :refer :all]
             [tlaplus.FiniteSets :refer :all]
             [tlaplus.Integers :refer :all]
-            [tlaplus.Sequences :refer :all]))
+            [tlaplus.Sequences :refer :all])
+  (:import [java.util Random]))
 
 (defn listy? [x]
   (or (list? x)
@@ -16,7 +17,7 @@
 
 (defn valid-context? [c]
   (when-not (and (map? c)
-                 (= #{:free-v :symbol-map-stack :global-symbol-map :super-stack}) (keys c))
+                 (= #{:free-v :symbol-map-stack :global-symbol-map :super-stack :simulate?}) (keys c))
     (throw (RuntimeException. (str "invalid context " c)))))
 
 (defn produce-context [c]
@@ -37,6 +38,24 @@
 
 (defn debug-context [c]
   (rest (:symbol-map-stack c)))
+
+(def ^:dynamic *simulated-vars* (atom {}))
+
+(defn allow-simulation [c]
+  (reset! *simulated-vars* {})
+  (produce-context (assoc c :simulate? true)))
+
+(defn clear-simulation [c]
+  (valid-context? c)
+  (reset! *simulated-vars* {})
+  (produce-context (dissoc c :simulate?)))
+
+(defn should-simulate? [c]
+  (valid-context? c)
+  (:simulate? c))
+
+(defn simulate [c var val]
+  (swap! *simulated-vars* #(assoc % var val)))
 
 (defn push-context [c m]
   (valid-context? c)
@@ -65,7 +84,11 @@
      (loop [cs symbol-map-stack]
        (let [c0 (last cs)]
          (if c0
-           (let [r (c0 s)
+           (let [r (let [c0-r (c0 s)]
+                     (if (nil? c0-r)
+                       (when (should-simulate? c)
+                         (@*simulated-vars* s))
+                       c0-r))
                  r (if (or peek?
                            (not (is-fn? r)))
                      r
@@ -279,6 +302,36 @@
       (reduce merge {} (for [x s]
                          {x (seval** (push-context context {v x}) body)})))))
 
+(defn- scalar? [x]
+  (or (map? x)
+      (vector? x)
+      (set? x)
+      (number? x)
+      (string? x)))
+
+;;
+
+(def ^:dynamic *rand-seed-atom* (atom (rand-int Integer/MAX_VALUE)))
+
+(defn rand-int* [n]
+  (let [r (Random. @*rand-seed-atom*)
+        result (.nextInt r n)
+        new-seed (.nextInt r Integer/MAX_VALUE)]
+    (reset! *rand-seed-atom* new-seed)
+    result))
+
+;;
+
+(defn- optionally-simulate [context e]
+  (let [[op x y] e]
+    (when (and (= op '=)
+               (symbol? x)
+               (expr-with-free-vars? context x)
+               (not (expr-with-free-vars? context y))
+               (scalar? y))
+      (when (= 1 (rand-int* 2))
+        (simulate context x y)))))
+
 (defn seval* [context e]
   (let [result (try (if (= '() e)
                       []
@@ -315,7 +368,9 @@
                                            (let [evaled-args (vec (map (partial seval** context) args))
                                                  result (apply list op evaled-args)]
                                              (if (expr-with-symbol-references? context evaled-args)
-                                               result
+                                               (do
+                                                 (optionally-simulate context result)
+                                                 result)
                                                (eval result)))))
 
                                        (= 'let op)
@@ -979,9 +1034,12 @@
 (defn delta-state [s-ref new-states]
   (if (map? new-states)
     (delta-state-single s-ref new-states)
-    (->> new-states
-         (map (partial delta-state-single s-ref))
-         set)))
+    (if (and (set? new-states)
+             (every? map? new-states))
+      (->> new-states
+           (map (partial delta-state-single s-ref))
+           set)
+      new-states)))
 
 ;;
 
@@ -997,7 +1055,7 @@
         trimmed-free-vs (-> (set free-vs)
                             (set/difference (set vs-to-omit))
                             (set/difference (->> vs-to-omit
-                                                 (map #(symbol (str (name %) "'")))
+                                                 (map #(symbol (str % "'")))
                                                  set)))
         context (make-context free-vs (merge (dissoc defs-from-file 'VARIABLE)
                                              constants
@@ -1006,9 +1064,55 @@
         result (seval context e)]
 
     (condp = result-formatting
+      nil result
       :raw result
-      :states (to-state trimmed-free-vs)
+      :states (to-state trimmed-free-vs result)
       :delta (->> result
                   (to-state trimmed-free-vs)
                   (delta-state state)))))
 
+(defn simulate**
+  [free-vs constants state n e]
+  (let [run-f (fn [m simulate?] (let [context (make-context free-vs (merge constants state m))
+                                      context ((if simulate?
+                                                 allow-simulation
+                                                 clear-simulation) context)]
+                                  (let [result (seval context e)
+                                        values @*simulated-vars*]
+                                    (clear-simulation context)
+                                    {:result result
+                                     :values values})))]
+    (let [r (loop [{:keys [result values]} (run-f {} true)
+                   results #{}
+                   counter n]
+              (if (pos? counter)
+                (recur (run-f {} true) (if (true? result)
+                                         (conj results values)
+                                         results)
+                       (dec counter))
+                results))]
+      (->> r
+           (map #(when-not (true? (:result (run-f % false)))
+                   (throw (RuntimeException. (str "failed on: " %)))))
+           doall)
+      r)))
+
+(defn simulate*
+  [src-file-name constants state n e result-formatting vs-to-omit]
+  (let [defs-from-file (load-text (slurp src-file-name))
+        vs (->> (get defs-from-file 'VARIABLE)
+                (filter symbol?))
+        prime-vs (->> vs
+                      (map #(symbol (str (name %) "'")))
+                      vec)
+        free-vs (set/difference (set/union (set vs) (set prime-vs)) (keys state))
+        trimmed-free-vs (-> (set free-vs)
+                            (set/difference (set vs-to-omit))
+                            (set/difference (->> vs-to-omit
+                                                 (map #(symbol (str % "'")))
+                                                 set)))
+        total-state (merge (dissoc defs-from-file 'VARIABLE)
+                           constants
+                           state
+                           `{~'VARS- ~vs})]
+    (simulate** free-vs constants total-state n e)))
