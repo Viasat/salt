@@ -155,7 +155,7 @@ Identifiers from the TLA+ language:
 | lambda | ```(fn [x] (> x 2))``` | lambda in SelectSeq | ```LAMBDA  x: (x > 2)``` |
 | lambda | ```#(* 2 %)``` | lambda in Except| ```@ * 2``` |
 
-Technically a TLA+ operator is better understood as a Clojure macro rather than a Clojure function. However, since Clojure functions are easier to write and higher order functions are very natural to write, the decision was taken to model TLA+ operators as Clojure functions. This does not cause issues because the functions are never applied without having all of the variables bound, so that whether they are applied or structurally substituted at that point does not matter.
+Technically a TLA+ operator is better understood as a Clojure macro rather than a Clojure function. However, since Clojure functions are easier to write and higher order functions are very natural to write, the decision was taken to model TLA+ operators as Clojure functions. This does not cause issues because the functions are never applied without having all of the variables bound. Whether they are applied or structurally substituted at that point does not matter.
 
 In a way TLA+ functions might be usefully considered as Clojure functions. But, of course Clojure maps can be used as Clojure functions.
 
@@ -603,6 +603,13 @@ Produce a new vector containing all but the first item:
 | --- | --- | --- |
 | code | `(rest [1 "a"])` | `Tail(<< 1, "a" >>)` |
 | result | `["a"]` | `<<"a">>` |
+
+Produce a new vector with one element changed:
+
+|  | salt | tla+ |
+| --- | --- | --- |
+| code | `(EXCEPT [10 20 30] [2] 200)` | `[<< 10, 20, 30 >> EXCEPT ![2] = 200]` |
+| result | `[10 200 30]` | `<<10, 200, 30>>` |
 
 Combine the contents of two vectors into a new vector
 

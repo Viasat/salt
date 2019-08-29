@@ -669,7 +669,8 @@ line 3")
 
 (deftest test-defm-2 []
   (is (= "InPortRange == [r \\in { << 4, 5, 6 >>, << 1, 2, 3 >> }, p \\in (3..5) |-> 
-    /\\  r[1] <= p\n    /\\  p <= r[2]]
+    /\\  r[1] <= p
+    /\\  p <= r[2]]
 
 "
          (transpiler/transpile-single-form '(defm- InPortRange [r #{[1 2 3] [4 5 6]}
@@ -707,6 +708,19 @@ line 3")
              (transpiler/transpile-form '(def s [10 2 30 4]))
              (transpiler/transpile-form '(map* (fn [i] (get* s i)) (DOMAIN s)))))))
 
+(deftest test-assoc-in-tuples
+  (is (= [10 200 30]
+         (EXCEPT [10 20 30] [2] 200)))
+  (is (= "[<< 10, 20, 30 >> EXCEPT ![2] = 200]"
+         (transpiler/transpile-single-form '(EXCEPT [10 20 30] [2] 200))))
+  (is (= {1 "c"
+          4 "b"}
+         (EXCEPT {1 "a"
+                  4 "b"} [1] "c")))
+  (is (= "[[1 |-> \"a\",\n  4 |-> \"b\"] EXCEPT ![1] = \"c\"]"
+         (transpiler/transpile-single-form '(EXCEPT {1 "a"
+                                                     4 "b"} [1] "c")))))
+
 ;; test full specs
 
 (defn- expected-file-name [spec-name]
@@ -725,11 +739,13 @@ line 3")
 
 (defn- accept-all []
   (accept "FinalMatch")
-  (accept "TwoPhase"))
+  (accept "TwoPhase")
+  (accept "Tic"))
 
 (deftest test-specs []
   (check-spec "FinalMatch")
-  (check-spec "TwoPhase"))
+  (check-spec "TwoPhase")
+  (check-spec "Tic"))
 
 ;; (accept-all)
 ;; (run-tests)

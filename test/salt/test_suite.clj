@@ -643,6 +643,13 @@ multi line comment")
          "<<\"a\">>"
          true)
 
+  (check "Produce a new vector with one element changed:"
+         '(EXCEPT [10 20 30] [2] 200)
+         [10 200 30]
+         "[<< 10, 20, 30 >> EXCEPT ![2] = 200]"
+         "<<10, 200, 30>>"
+         true)
+
   (check "Combine the contents of two vectors into a new vector"
          '(into [1 "a"] [2])
          [1 "a" 2]

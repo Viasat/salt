@@ -1,11 +1,11 @@
-(ns salt.test-TwoPhase
+(ns test-TwoPhase
   (:require [clojure.test :refer :all]
             [salt]
             [salt.lang :refer :all]
             [tlaplus.Sequences :refer :all]
             [TwoPhase :refer :all]))
 
-(use-fixtures :each (salt/namespace-fixture 'salt.test-TwoPhase))
+(use-fixtures :each (salt/namespace-fixture 'test-TwoPhase))
 
 (deftest test-basic
   (is (= #{{msgs' #{{:type "Prepared"

@@ -41,9 +41,34 @@
   `(do (when (not ~body))
        nil))
 
+;;
+
+(defn get*
+  "Redefine to be 1 based to match TLA+"
+  [c k]
+  (if (map? c)
+    (get c k)
+    (if (integer? k)
+      (get c (dec k))
+      (get c k))))
+
+(defn assoc-in*
+  [c [k & ks] v]
+  (let [k' (if (map? c)
+             k
+             (if (integer? k)
+               (dec k)
+               k))]
+    (if ks
+      (assoc c k'
+             (assoc-in* (get* c k) ks v))
+      (assoc c k' v))))
+
+;;
+
 (defn EXCEPT-f [m path new-value-f]
   (let [current-value (get-in m path)]
-    (assoc-in m path (new-value-f current-value))))
+    (assoc-in* m path (new-value-f current-value))))
 
 (defmacro EXCEPT [m & bindings]
   (let [[path new-value & more] bindings
@@ -230,15 +255,6 @@
   (apply numeric-tower/expt args))
 
 ;; redefined core functions
-
-(defn get*
-  "Redefine to be 1 based to match TLA+"
-  [c k]
-  (if (map? c)
-    (get c k)
-    (if (integer? k)
-      (get c (dec k))
-      (get c k))))
 
 (defn range*
   "Redefined to include end value to match TLA+"

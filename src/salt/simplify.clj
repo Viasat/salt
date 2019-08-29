@@ -333,138 +333,137 @@
         (simulate context x y)))))
 
 (defn seval* [context e]
-  (let [result (try (if (= '() e)
-                      []
-                      (cond
-                        (is-fn? e) (define-anon-f context e)
+  (try (if (= '() e)
+         []
+         (cond
+           (is-fn? e) (define-anon-f context e)
 
-                        (listy? e) (let [op (first e)]
-                                     (cond
-                                       (= 'line- op)
-                                       false
+           (listy? e) (let [op (first e)]
+                        (cond
+                          (= 'line- op)
+                          false
 
-                                       (#{'E 'A 'CHOOSE} op)
-                                       (let [[op [v s] & body] e
-                                             evald (eval-E-A context (list op [v (seval** context s)]
-                                                                           (last body)))
-                                             expanded (expand-E-A context evald)]
-                                         expanded)
+                          (#{'E 'A 'CHOOSE} op)
+                          (let [[op [v s] & body] e
+                                evald (eval-E-A context (list op [v (seval** context s)]
+                                                              (last body)))
+                                expanded (expand-E-A context evald)]
+                            expanded)
 
-                                       (#{'= 'not=
-                                          '> '>= '< '<= '=> '<=>
-                                          '+ '- '* 'div 'mod* 'expt
-                                          'and 'or 'not
-                                          'Nat 'range*
-                                          'union 'UNION 'X 'subset? 'SUBSET 'contains? 'Cardinality 'difference 'intersection
-                                          'first 'get* 'rest 'into 'count
-                                          'SubSeq 'conj 'Seq 'every?* 'DOMAIN
-                                          'maps- 'EXCEPT} op)
-                                       (let [[_ & args] e]
-                                         (if (and (zero? (count args))
-                                                  (#{'and 'or} op))
-                                           (condp = op
-                                             'and true
-                                             'or false)
-                                           (let [evaled-args (vec (map (partial seval** context) args))
-                                                 result (apply list op evaled-args)]
-                                             (if (expr-with-symbol-references? context evaled-args)
-                                               (do
-                                                 (optionally-simulate context result)
-                                                 result)
-                                               (eval result)))))
+                          (#{'= 'not=
+                             '> '>= '< '<= '=> '<=>
+                             '+ '- '* 'div 'mod* 'expt
+                             'and 'or 'not
+                             'Nat 'range*
+                             'union 'UNION 'X 'subset? 'SUBSET 'contains? 'Cardinality 'difference 'intersection
+                             'first 'get* 'rest 'into 'count
+                             'SubSeq 'conj 'Seq 'every?* 'DOMAIN
+                             'maps- 'EXCEPT} op)
+                          (let [[_ & args] e]
+                            (if (and (zero? (count args))
+                                     (#{'and 'or} op))
+                              (condp = op
+                                'and true
+                                'or false)
+                              (let [evaled-args (vec (map (partial seval** context) args))
+                                    result (apply list op evaled-args)]
+                                (if (expr-with-symbol-references? context evaled-args)
+                                  (do
+                                    (optionally-simulate context result)
+                                    result)
+                                  (eval result)))))
 
-                                       (= 'let op)
-                                       (let [[_ bindings & body] e]
-                                         (seval** (push-context context (zipmap (map first (partition 2 bindings))
-                                                                                (map second (partition 2 bindings))))
-                                                  (last body)))
+                          (= 'let op)
+                          (let [[_ bindings & body] e]
+                            (seval** (push-context context (zipmap (map first (partition 2 bindings))
+                                                                   (map second (partition 2 bindings))))
+                                     (last body)))
 
-                                       (= 'fm- op)
-                                       (let [[_ bindings & body] e
-                                             body (seval** (push-context context
-                                                                         (zipmap (map first (partition 2 bindings))
-                                                                                 (map second (partition 2 bindings))))
-                                                           (last body))]
-                                         (expand-fm- context (list op bindings body)))
+                          (= 'fm- op)
+                          (let [[_ bindings & body] e
+                                body (seval** (push-context context
+                                                            (zipmap (map first (partition 2 bindings))
+                                                                    (map second (partition 2 bindings))))
+                                              (last body))]
+                            (expand-fm- context (list op bindings body)))
 
-                                       (= 'if op)
-                                       (let [[_ clause a b] e]
-                                         (let [clause-result (seval** context clause)]
-                                           (cond
-                                             (true? clause-result)
-                                             (seval** context `~a)
-                                             (false? clause-result)
-                                             (seval** context `~b)
-                                             :default
-                                             (seval** context `(~'or (~'and ~clause
-                                                                            ~a)
-                                                                     (~'and (~'not ~clause)
-                                                                            ~b))))))
+                          (= 'if op)
+                          (let [[_ clause a b] e]
+                            (let [clause-result (seval** context clause)]
+                              (cond
+                                (true? clause-result)
+                                (seval** context `~a)
+                                (false? clause-result)
+                                (seval** context `~b)
+                                :default
+                                (seval** context `(~'or (~'and ~clause
+                                                               ~a)
+                                                        (~'and (~'not ~clause)
+                                                               ~b))))))
 
-                                       (= 'cond op)
-                                       (let [[_ & clauses] e]
-                                         (seval** context (eval-cond clauses)))
+                          (= 'cond op)
+                          (let [[_ & clauses] e]
+                            (seval** context (eval-cond clauses)))
 
-                                       (= 'UNCHANGED op)
-                                       (let [[_ vs] e]
-                                         (seval** context (eval-UNCHANGED
-                                                           (if (vector? vs)
-                                                             vs
-                                                             (seval** context vs)))))
+                          (= 'UNCHANGED op)
+                          (let [[_ vs] e]
+                            (seval** context (eval-UNCHANGED
+                                              (if (vector? vs)
+                                                vs
+                                                (seval** context vs)))))
 
-                                       (= 'CHANGED- op)
-                                       (let [[_ vs] e]
-                                         (seval** context (eval-CHANGED- context vs)))
+                          (= 'CHANGED- op)
+                          (let [[_ vs] e]
+                            (seval** context (eval-CHANGED- context vs)))
 
-                                       (#{'select 'map* 'SelectSeq} op)
-                                       (let [[op [_ [f-arg] & f-body] s] e
-                                             f-body (seval** (push-context context {f-arg f-arg}) (last f-body))
-                                             s (seval** context s)
-                                             result `(~op (~'fn [~f-arg] ~f-body) ~s)]
-                                         (if (or (expr-with-free-vars? context f-body)
-                                                 (expr-with-free-vars? context s))
-                                           result
-                                           (eval result)))
+                          (#{'select 'map* 'SelectSeq} op)
+                          (let [[op [_ [f-arg] & f-body] s] e
+                                f-body (seval** (push-context context {f-arg f-arg}) (last f-body))
+                                s (seval** context s)
+                                result `(~op (~'fn [~f-arg] ~f-body) ~s)]
+                            (if (or (expr-with-free-vars? context f-body)
+                                    (expr-with-free-vars? context s))
+                              result
+                              (eval result)))
 
-                                       (= 'comment op)
-                                       false
+                          (= 'comment op)
+                          false
 
-                                       :default
-                                       (if (nil? op)
-                                         (throw (RuntimeException. (str "Cannot resolve nil: " [e (class e)])))
-                                         (let [args (vec (map (partial seval** context) (rest e)))
-                                               result (apply list (first e) args)]
-                                           (if (expr-with-free-vars? context args)
-                                             result
-                                             (let [[sub-context f-form] (resolve-custom-f context op)]
-                                               (when (nil? f-form)
-                                                 (throw (RuntimeException. (str "cannot resolve op: " [op
-                                                                                                       (debug-context context)
-                                                                                                       (debug-anon-f)]))))
-                                               (let [[_ f-args f-body] f-form]
-                                                 (when (nil? f-body)
-                                                   (throw (RuntimeException. (str "Cannot resolve call to function: " op " " f-form))))
-                                                 (seval** (push-context sub-context
-                                                                        (zipmap f-args
-                                                                                args))
+                          :default
+                          (if (nil? op)
+                            (throw (RuntimeException. (str "Cannot resolve nil: " [e (class e)])))
+                            (let [args (vec (map (partial seval** context) (rest e)))
+                                  result (apply list (first e) args)]
+                              (if (expr-with-free-vars? context args)
+                                result
+                                (let [[sub-context f-form] (resolve-custom-f context op)]
+                                  (when (nil? f-form)
+                                    (throw (RuntimeException. (str "cannot resolve op: " [op
+                                                                                          (debug-context context)
+                                                                                          (debug-anon-f)]))))
+                                  (let [[_ f-args f-body] f-form]
+                                    (when (nil? f-body)
+                                      (throw (RuntimeException. (str "Cannot resolve call to function: " op " " f-form))))
+                                    (seval** (push-context sub-context
+                                                           (zipmap f-args
+                                                                   args))
 
-                                                          f-body))))))))
-                        (symbol? e) (if (is-free-v? context e)
-                                      e
-                                      (resolve-in-context context e))
-                        (set? e) (set (map (partial seval** context) e))
-                        (map? e) (process-map (partial seval** context) e)
-                        (vector? e) (vec (map (partial seval** context) e))
-                        (string? e) e
-                        (number? e) e
-                        (keyword? e) e
-                        (boolean? e) e))
-                    (catch Throwable t
-                      (println (str "failure processing: " [e
-                                                            (debug-context context)
-                                                            (debug-anon-f)]))
-                      (throw t)))]
-    result))
+                                             f-body))))))))
+           (symbol? e) (if (is-free-v? context e)
+                         e
+                         (resolve-in-context context e))
+           (set? e) (set (map (partial seval** context) e))
+           (map? e) (process-map (partial seval** context) e)
+           (vector? e) (vec (map (partial seval** context) e))
+           (string? e) e
+           (number? e) e
+           (keyword? e) e
+           (boolean? e) e))
+       (catch Throwable t
+         (println (str "failure processing: " [e
+                                               (debug-context context)
+                                               (debug-anon-f)]))
+         (throw t))))
 
 (defn- seval** [context e]
   (let [f (fn [e]
@@ -812,96 +811,97 @@
                                                     `(~'= ~k ~v))))))))))))))))))
 
 (defn apply-rules [context e]
-  (cond
-    (listy? e) (let [args (vec (map (partial apply-rules context) (rest e)))
-                     [op] e]
-                 (cond
-                   (= 'and op)
-                   (let [args (remove true? args)]
-                     (if (some false? args)
-                       false
-                       (if (empty? args)
-                         true
-                         (if (= 1 (count args))
-                           (first args)
-                           (rule->> (apply list 'and args)
-                                    (partial simplify-and-via-substitution context)
-                                    (partial simplify-EXCEPT-complete context))))))
+  (let [r (cond
+            (listy? e) (let [args (vec (map (partial apply-rules context) (rest e)))
+                             [op] e]
+                         (cond
+                           (= 'and op)
+                           (let [args (remove true? args)]
+                             (if (some false? args)
+                               false
+                               (if (empty? args)
+                                 true
+                                 (if (= 1 (count args))
+                                   (first args)
+                                   (rule->> (apply list 'and args)
+                                            (partial simplify-and-via-substitution context)
+                                            (partial simplify-EXCEPT-complete context))))))
 
-                   (= 'or op)
-                   (let [args (remove false? args)]
-                     (if (empty? args)
-                       false
-                       (if (some true? args)
-                         true
-                         (if (= 1 (count args))
-                           (first args)
-                           (apply list 'or args)))))
+                           (= 'or op)
+                           (let [args (remove false? args)]
+                             (if (empty? args)
+                               false
+                               (if (some true? args)
+                                 true
+                                 (if (= 1 (count args))
+                                   (first args)
+                                   (apply list 'or args)))))
 
-                   (= '+ op)
-                   (let [e (rule->> (apply list op args)
+                           (= '+ op)
+                           (let [e (rule->> (apply list op args)
+                                            (partial simplify-move-free-to-left context))
+                                 {numbers true
+                                  other false} (group-by number? (rest e))
+                                 total (apply + numbers)]
+                             (if (and (zero? total)
+                                      (= 1 (count other)))
+                               (first other)
+                               (if (zero? total)
+                                 (apply list '+ other)
+                                 (apply list '+ (into other [total])))))
+
+                           (= '* op)
+                           (rule->> (apply list op args)
                                     (partial simplify-move-free-to-left context))
-                         {numbers true
-                          other false} (group-by number? (rest e))
-                         total (apply + numbers)]
-                     (if (and (zero? total)
-                              (= 1 (count other)))
-                       (first other)
-                       (if (zero? total)
-                         (apply list '+ other)
-                         (apply list '+ (into other [total])))))
 
-                   (= '* op)
-                   (rule->> (apply list op args)
-                            (partial simplify-move-free-to-left context))
+                           (= 'union op)
+                           (rule->> (apply list op args)
+                                    (partial simplify-move-free-to-left context))
 
-                   (= 'union op)
-                   (rule->> (apply list op args)
-                            (partial simplify-move-free-to-left context))
+                           (= '- op)
+                           (rule->> (apply list op args)
+                                    (partial simplify-binary-minus context))
 
-                   (= '- op)
-                   (rule->> (apply list op args)
-                            (partial simplify-binary-minus context))
+                           (#{'= 'not=} op)
+                           (rule->> (apply list op args)
+                                    (partial simplify-move-free-to-left context)
+                                    (partial simplify-impossible-union context)
+                                    (partial simplify-binary-commutative context 'union 'difference op-unchanged (fn [x y]
+                                                                                                                   (subset? y x)))
+                                    (partial simplify-binary-commutative context 'difference 'union op-unchanged operands-good)
+                                    (partial simplify-difference-on-right context)
+                                    (partial simplify-binary-commutative context '+ '- op-unchanged operands-good)
+                                    (partial simplify-binary-commutative context '- '+ op-unchanged operands-good)
+                                    (partial simplify-binary-commutative context '* 'div op-unchanged operands-good)
+                                    (partial simplify-binary-commutative context 'div '* op-unchanged operands-good)
+                                    (partial simplify-expt context)
+                                    (partial simplify-unary-minus context)
+                                    (partial simplify-not context)
+                                    (partial simplify-into-on-right context)
+                                    (partial simplify-into-on-left context)
+                                    (partial simplify-EXCEPT-impossible context))
 
-                   (#{'= 'not=} op)
-                   (rule->> (apply list op args)
-                            (partial simplify-move-free-to-left context)
-                            (partial simplify-impossible-union context)
-                            (partial simplify-binary-commutative context 'union 'difference op-unchanged (fn [x y]
-                                                                                                           (subset? y x)))
-                            (partial simplify-binary-commutative context 'difference 'union op-unchanged operands-good)
-                            (partial simplify-difference-on-right context)
-                            (partial simplify-binary-commutative context '+ '- op-unchanged operands-good)
-                            (partial simplify-binary-commutative context '- '+ op-unchanged operands-good)
-                            (partial simplify-binary-commutative context '* 'div op-unchanged operands-good)
-                            (partial simplify-binary-commutative context 'div '* op-unchanged operands-good)
-                            (partial simplify-expt context)
-                            (partial simplify-unary-minus context)
-                            (partial simplify-not context)
-                            (partial simplify-into-on-right context)
-                            (partial simplify-into-on-left context)
-                            (partial simplify-EXCEPT-impossible context))
+                           (#{'< '<= '> '>=} op)
+                           (rule->> (apply list op args)
+                                    (partial simplify-move-free-to-left context)
+                                    (partial simplify-binary-commutative context '+ '- op-unchanged operands-good)
+                                    (partial simplify-binary-commutative context '- '+ op-unchanged operands-good)
+                                    (partial simplify-binary-commutative context '* 'div flip-inequality operands-good)
+                                    (partial simplify-binary-commutative context 'div '* flip-inequality operands-good)
+                                    (partial simplify-expt context)
+                                    (partial simplify-unary-minus context))
 
-                   (#{'< '<= '> '>=} op)
-                   (rule->> (apply list op args)
-                            (partial simplify-move-free-to-left context)
-                            (partial simplify-binary-commutative context '+ '- op-unchanged operands-good)
-                            (partial simplify-binary-commutative context '- '+ op-unchanged operands-good)
-                            (partial simplify-binary-commutative context '* 'div flip-inequality operands-good)
-                            (partial simplify-binary-commutative context 'div '* flip-inequality operands-good)
-                            (partial simplify-expt context)
-                            (partial simplify-unary-minus context))
-
-                   :default
-                   (apply list op args)))
-    (symbol? e) e
-    (set? e) (set (map (partial apply-rules context) e))
-    (map? e) (process-map (partial apply-rules context) e)
-    (vector? e) (vec (map (partial apply-rules context) e))
-    (string? e) e
-    (number? e) e
-    (keyword? e) e
-    (boolean? e) e))
+                           :default
+                           (apply list op args)))
+            (symbol? e) e
+            (set? e) (set (map (partial apply-rules context) e))
+            (map? e) (process-map (partial apply-rules context) e)
+            (vector? e) (vec (map (partial apply-rules context) e))
+            (string? e) e
+            (number? e) e
+            (keyword? e) e
+            (boolean? e) e)]
+    r))
 
 ;;
 

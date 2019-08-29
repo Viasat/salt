@@ -1,0 +1,74 @@
+---------------------------- MODULE Tic ----------------------------
+VARIABLE turn, board
+
+vars == << turn, board >>
+
+TypesOk == 
+    /\  turn \in { "x", "o" }
+    /\  \A x \in { 1, 3, 2 } :
+            \A y \in { 1, 3, 2 } :
+                board[x][y] \in { "x", "_", "o" }
+
+Init == 
+    /\  turn = "x"
+    /\  board = << << "_", "_", "_" >>, << "_", "_", "_" >>, << "_", "_", "_" >> >>
+        
+
+WinRow( x ) ==
+    LET p == board[x][1]
+    IN  /\  p # "_"
+        /\  p = board[x][2]
+        /\  p = board[x][3]
+
+WinCol( y ) ==
+    LET p == board[1][y]
+    IN  /\  p # "_"
+        /\  p = board[2][y]
+        /\  p = board[3][y]
+
+WinDiag == 
+    \/  LET p == board[1][1]
+        IN  /\  p # "_"
+            /\  p = board[2][2]
+            /\  p = board[3][3]
+    \/  LET p == board[1][3]
+        IN  /\  p # "_"
+            /\  p = board[2][2]
+            /\  p = board[3][1]
+
+Winner == 
+    \/  \E x \in { 1, 3, 2 } :
+            WinRow(x)
+    \/  \E y \in { 1, 3, 2 } :
+            WinCol(y)
+    \/  WinDiag
+
+OtherPlayer( player ) ==
+    IF  (player = "x")
+    THEN "o"
+    ELSE "x"
+
+Move( player ) ==
+    /\  ~Winner
+    /\  turn = player
+    /\  \E x \in { 1, 3, 2 } :
+            \E y \in { 1, 3, 2 } :
+                /\  board[x][y] = "_"
+                /\  board' = [board EXCEPT ![x] = [board[x] EXCEPT ![y] = 
+                                            player]]
+                /\  turn' = OtherPlayer(player)
+
+Next == 
+    \/  Move("x")
+    \/  Move("o")
+
+--------------------------------------------------------------------------------
+Spec == 
+    /\  Init
+    /\  [][Next]_vars
+    /\  WF_vars(Next)
+
+Termination == <>[](Winner)
+
+
+=============================================================================
