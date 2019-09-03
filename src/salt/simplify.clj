@@ -170,22 +170,28 @@
         (let [[v s] bindings]
           (list op bindings body))))))
 
-(defn- eval-cond [clauses]
-  (let [conds (vec (map first (partition 2 clauses)))
+(defn- eval-cond [context clauses]
+  (let [conds (vec (->> clauses
+                        (partition 2)
+                        (map first)
+                        (map (partial seval** context))))
         bodies (vec (map second (partition 2 clauses)))
-        options (map (fn [b n]
-                       (let [c (get conds n)
-                             m (map (fn [x] `(~'not ~x)) (take n conds))
-                             b (get bodies n)
-                             c (if (= :default c)
-                                 true
-                                 c)]
-                         `(~'and ~c
-                                 ~@m
-                                 ~b)))
-                     bodies
-                     (range))]
-    `(~'or ~@options)))
+        options (mapcat (fn [b n]
+                          (let [c (get conds n)
+                                b (get bodies n)
+                                m (map (fn [x] `(~'not ~x)) (take n conds))
+                                c (if (= :default c)
+                                    `(~'and ~@m)
+                                    c)]
+                            (when-not (false? c)
+                              `(~c ~b))))
+                        bodies
+                        (range))]
+    (if (and (every? true? conds)
+             (= 1 (count (set bodies))))
+      (first bodies)
+      (when-not (every? false? conds)
+        `(~'cond ~@(remove nil? options))))))
 
 (defn primed-symbol [s]
   (when-not (symbol? s)
@@ -403,7 +409,7 @@
 
                           (= 'cond op)
                           (let [[_ & clauses] e]
-                            (seval** context (eval-cond clauses)))
+                            (eval-cond context clauses))
 
                           (= 'UNCHANGED op)
                           (let [[_ vs] e]
@@ -494,7 +500,7 @@
                    (not (subset? y-2 y)))
           false)))))
 
-(defn- simplify-binary-commutative [context f inverse-f op-f operands-good?-f e]
+(defn- simplify-binary-commutative [context f inverse-f op-f operands-good?-f expand-arg-f e]
   (let [[op x y & more] e]
     (when (and (not (nil? x))
                (not (nil? y))
@@ -510,7 +516,10 @@
                    (expr-with-free-vars? context x-arg1)
                    (not (expr-with-free-vars? context x-arg2))
                    (operands-good?-f y x-arg2))
-          `(~(op-f op x-arg2) ~x-arg1 (~inverse-f ~y ~x-arg2)))))))
+          (let [expanded-arg (expand-arg-f x-arg2)
+                clauses (map (fn [z]
+                               `(~(op-f op x-arg2) ~x-arg1 (~inverse-f ~y ~z))) expanded-arg)]
+            `(~'or ~@clauses)))))))
 
 (defn- simplify-unary-minus [context e]
   (let [[op x y & more] e]
@@ -671,6 +680,9 @@
 
 (defn- operands-good [x y]
   true)
+
+(defn- identity-expand-args [x-arg2]
+  #{x-arg2})
 
 (defmacro rule->>
   "Return the first non-nil produced by invoking each of the rules on e in order. If none, then return
@@ -866,14 +878,15 @@
                            (rule->> (apply list op args)
                                     (partial simplify-move-free-to-left context)
                                     (partial simplify-impossible-union context)
+
                                     (partial simplify-binary-commutative context 'union 'difference op-unchanged (fn [x y]
-                                                                                                                   (subset? y x)))
-                                    (partial simplify-binary-commutative context 'difference 'union op-unchanged operands-good)
+                                                                                                                   (subset? y x)) SUBSET)
+                                    (partial simplify-binary-commutative context 'difference 'union op-unchanged operands-good SUBSET)
                                     (partial simplify-difference-on-right context)
-                                    (partial simplify-binary-commutative context '+ '- op-unchanged operands-good)
-                                    (partial simplify-binary-commutative context '- '+ op-unchanged operands-good)
-                                    (partial simplify-binary-commutative context '* 'div op-unchanged operands-good)
-                                    (partial simplify-binary-commutative context 'div '* op-unchanged operands-good)
+                                    (partial simplify-binary-commutative context '+ '- op-unchanged operands-good identity-expand-args)
+                                    (partial simplify-binary-commutative context '- '+ op-unchanged operands-good identity-expand-args)
+                                    (partial simplify-binary-commutative context '* 'div op-unchanged operands-good identity-expand-args)
+                                    (partial simplify-binary-commutative context 'div '* op-unchanged operands-good identity-expand-args)
                                     (partial simplify-expt context)
                                     (partial simplify-unary-minus context)
                                     (partial simplify-not context)
@@ -884,10 +897,10 @@
                            (#{'< '<= '> '>=} op)
                            (rule->> (apply list op args)
                                     (partial simplify-move-free-to-left context)
-                                    (partial simplify-binary-commutative context '+ '- op-unchanged operands-good)
-                                    (partial simplify-binary-commutative context '- '+ op-unchanged operands-good)
-                                    (partial simplify-binary-commutative context '* 'div flip-inequality operands-good)
-                                    (partial simplify-binary-commutative context 'div '* flip-inequality operands-good)
+                                    (partial simplify-binary-commutative context '+ '- op-unchanged operands-good identity-expand-args)
+                                    (partial simplify-binary-commutative context '- '+ op-unchanged operands-good identity-expand-args)
+                                    (partial simplify-binary-commutative context '* 'div flip-inequality operands-good identity-expand-args)
+                                    (partial simplify-binary-commutative context 'div '* flip-inequality operands-good identity-expand-args)
                                     (partial simplify-expt context)
                                     (partial simplify-unary-minus context))
 

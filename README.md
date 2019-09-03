@@ -228,7 +228,7 @@ Conditional statements are expressed as:
 | code | `(if true 100 0)` | `IF  TRUE`<br>`THEN 100`<br>`ELSE 0` |
 | result | `100` | `100` |
 
-To perform many checks on a value use 'cond':
+To perform many checks on a value use 'cond'. NOTE: cond only allows one condition to be applied, whereas with TLA+ all matching conditions are possible results.
 
 |  | salt | tla+ |
 | --- | --- | --- |

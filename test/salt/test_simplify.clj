@@ -194,16 +194,36 @@
            (->> '(if (> x 5)
                    p'
                    q')
-                (simplify/seval* c)
-                (simplify/apply-rules c)))))
+                (simplify/seval c)))))
 
-  (is (= false
-         (let [m {'x 1}
+  (is (nil?
+       (let [m {'x 1}
+             c (simplify/make-context '[p' q'] m)]
+         (->> '(cond (> x 5) p'
+                     (> x 10) q')
+              (simplify/seval c)))))
+
+  (is (= 'p'
+         (let [m {'x 6}
                c (simplify/make-context '[p' q'] m)]
            (->> '(cond (> x 5) p'
                        (> x 10) q')
-                (simplify/seval* c)
-                (simplify/apply-rules c)))))
+                (simplify/seval c)))))
+
+  (is (= '(cond true p'
+                true q')
+         (let [m {'x 16}
+               c (simplify/make-context '[p' q'] m)]
+           (->> '(cond (> x 5) p'
+                       (> x 10) q')
+                (simplify/seval c)))))
+
+  (is (= 'p'
+         (let [m {'x 16}
+               c (simplify/make-context '[p' q'] m)]
+           (->> '(cond (> x 5) p'
+                       (> x 10) p')
+                (simplify/seval c)))))
 
   (is (= '(and (> q' 3)
                (> q' 1)
@@ -528,16 +548,12 @@
                                                                        '[x y]))))
 
 (deftest test-eval-cond
-  (is (= '(or (and (> x 2)
-                   200)
-              (and (> x 1)
-                   (not (> x 2))
-                   100)
-              (and true
-                   (not (> x 2))
-                   (not (> x 1))
-                   99)))
-      (#'simplify/eval-cond '[(> x 2) 200
+  (is (= '(cond (> x 2) 200
+                (> x 1) 100
+                (and (not (> x 2))
+                     (not (> x 1))) 99))
+      (#'simplify/eval-cond (simplify/make-context '[x] {})
+                            '[(> x 2) 200
                               (> x 1) 100
                               :default 99])))
 
@@ -583,8 +599,16 @@
                       (> (div c3 -2) 3))
                 (simplify/seval c)))))
 
-  (is (= '(or (= x #{1 4})
+  (is (= '(or (= x #{1 4 2})
+              (= x #{1 4 3 2})
+              (= x #{1 4 3})
+              (= x #{1 4})
+
+              (= y #{1 3 2})
+              (= y #{1 3})
               (= y #{1 4 3 2})
+              (= y #{1 4 3})
+
               (subset? #{2} z))
          (let [m {}
                c (simplify/make-context '[x y y2 y3 z a b c c2 c3] m)]

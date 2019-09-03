@@ -215,7 +215,7 @@
          "100"
          true)
 
-  (check "To perform many checks on a value use 'cond':"
+  (check "To perform many checks on a value use 'cond'. NOTE: cond only allows one condition to be applied, whereas with TLA+ all matching conditions are possible results."
          '(let [x 3]
             (cond
               (= x 1) true
