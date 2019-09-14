@@ -962,6 +962,14 @@ multi line comment")
          ""
          true)
 
+  (check "Use a docstring with defn"
+         '(defn Add "docstring" [x y]
+            (+ x y))
+         :ignore
+         "\n\\* docstring\nAdd( x, y ) ==\n    x + y\n\n"
+         ""
+         true)
+
   (check "Invoke a function as normal:"
          ['(defn Add [x y]
              (+ x y))]
@@ -994,6 +1002,14 @@ multi line comment")
          '(defn Work [] (union a b))
          :ignore
          "Work == a \\union b\n\n"
+         ""
+         false)
+
+  (check "Define functions that take no arguments as usual (with docstring):"
+         ['(VARIABLE a b)]
+         '(defn Work "docstring" [] (union a b))
+         :ignore
+         "\n\\* docstring\nWork == a \\union b\n\n"
          ""
          false)
 
