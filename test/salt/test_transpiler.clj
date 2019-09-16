@@ -679,10 +679,10 @@ line 3")
                                                    (<= p (get* r 2))))))))
 
 (deftest test-Seq
-  (is (= "UNION
-{ [(1..n) -> { \"a\", \"b\" }] :
-    n \\in { 1, 2 } }")
-      (transpiler/transpile-single-form '(UNION (map* (fn [n] (maps- (range* 1 n) #{"a" "b"})) #{1 2}))))
+  (is (= "UNION (
+    { [(1..n) -> { \"a\", \"b\" }] :
+        n \\in { 1, 2 } })"
+         (transpiler/transpile-single-form '(UNION (map* (fn [n] (maps- (range* 1 n) #{"a" "b"})) #{1 2})))))
 
   (is (= #{["b"]
            []

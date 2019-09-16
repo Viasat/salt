@@ -25,13 +25,13 @@
                               '(E [x #{1 3 2}] (and (>= x 2) (= x' x)))))))
 
 (deftest test-1
-  (is (= '(or false (> q' 20)))
-      (let [m {'x 1
-               'a 20}]
-        (->> '(or (let [a 9]
-                    (> x a))
-                  (> q' a))
-             (simplify/seval* (simplify/make-context '[q'] m)))))
+  (is (= '(or false (> q' 20))
+         (let [m {'x 1
+                  'a 20}]
+           (->> '(or (let [a 9]
+                       (> x a))
+                     (> q' a))
+                (simplify/seval* (simplify/make-context '[q'] m))))))
 
   (is (= '(and z'
                (<= q' (+ t' 300)))
@@ -541,21 +541,21 @@
            (eval `(simplify/resolve-anon-f ~anon-keyword))))))
 
 (deftest test-CHANGED
-  (is (= '(and (= a' a) (= b' b)))
-      (simplify/eval-UNCHANGED '[a b])) (is (= '(UNCHANGED [a b])
-                                               (simplify/eval-CHANGED- (simplify/make-context '[x' y' a' b']
-                                                                                              '{VARS- [x y a b]})
-                                                                       '[x y]))))
+  (is (= '(and (= a' a) (= b' b))
+         (simplify/eval-UNCHANGED '[a b]))) (is (= '(UNCHANGED [a b])
+                                                   (simplify/eval-CHANGED- (simplify/make-context '[x' y' a' b']
+                                                                                                  '{VARS- [x y a b]})
+                                                                           '[x y]))))
 
 (deftest test-eval-cond
   (is (= '(cond (> x 2) 200
                 (> x 1) 100
                 (and (not (> x 2))
-                     (not (> x 1))) 99))
-      (#'simplify/eval-cond (simplify/make-context '[x] {})
-                            '[(> x 2) 200
-                              (> x 1) 100
-                              :default 99])))
+                     (not (> x 1))) 99)
+         (#'simplify/eval-cond (simplify/make-context '[x] {})
+                               '[(> x 2) 200
+                                 (> x 1) 100
+                                 :default 99]))))
 
 (deftest test-context
   (is (= 20
