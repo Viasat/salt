@@ -892,12 +892,21 @@
 
 ;; TLA+ operators (i.e. functions)
 
+(defn- parse-defn-form [f]
+  (if (and (> (count f) 3) (string? (nth f 2)))
+    (let [[_ f-name docstring args & body] f]
+      {:f-name f-name, :docstring docstring, :args args, :body body})
+    (let [[_ f-name args & body] f]
+      {:f-name f-name, :args args, :body body})))
+
 (defmethod transpile-list 'defn [x]
   (if (= :TOP (state/context))
-    (let [[_ f-name args & body] x]
+    (let [{:keys [f-name docstring args body]} (parse-defn-form x)]
       (if (zero? (count args))
         (do
           ;; if there are no args to the function, just emit it in a straightforward fashion
+          (when docstring
+            (transpile-list (list 'comment docstring)))
           (state/push-context 'defn)
           (state/clear-invocation-arg-count)
           (state/set-f-name f-name)
@@ -923,6 +932,8 @@
         (do
           ;; if the function takes args then transpile the body first so we can determine whether it
           ;; is recursive and how to deal with higher order functions
+          (when docstring
+            (transpile-list (list 'comment docstring)))
           (state/push-context 'defn)
           (state/clear-invocation-arg-count)
           (state/set-f-name f-name)

@@ -822,6 +822,13 @@ Define a new TLA+ operator with defn:
 | code | `(defn Add [x y] (+ x y))` | `Add( x, y ) ==`<br>`    x + y`<br>` `<br>` ` |
 | result |   |   |
 
+Use a docstring with defn
+
+|  | salt | tla+ |
+| --- | --- | --- |
+| code | `(defn Add "docstring" [x y] (+ x y))` | ` `<br>`\\* docstring`<br>`Add( x, y ) ==`<br>`    x + y`<br>` `<br>` ` |
+| result |   |   |
+
 Invoke a function as normal:
 
 |  | salt | tla+ |
@@ -848,6 +855,13 @@ Define functions that take no arguments as usual:
 |  | salt | tla+ |
 | --- | --- | --- |
 | code | `(defn Work [] (union a b))` | `Work == a \\union b`<br>` `<br>` ` |
+| result |   |   |
+
+Define functions that take no arguments as usual (with docstring):
+
+|  | salt | tla+ |
+| --- | --- | --- |
+| code | `(defn Work "docstring" [] (union a b))` | ` `<br>`\\* docstring`<br>`Work == a \\union b`<br>` `<br>` ` |
 | result |   |   |
 
 Invoke a function with no arguments.
