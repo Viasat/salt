@@ -753,4 +753,11 @@
                                        y 200}
                                      10))))))
 
+(deftest test-load-defs
+  (is (= '{Add (fn [x] (+ 1 x))}
+         (#'simplify/load-defs '(defn Add [x] (+ 1 x)))))
+
+  (is (= '{Add (fn [x] (+ 1 x))}
+         (#'simplify/load-defs '(defn Add "docstring " [x] (+ 1 x))))))
+
 ;; (time (run-tests))

@@ -979,12 +979,27 @@
 
 ;;
 
+(defn parse-defn-form [f]
+  (if (and (> (count f) 3)
+           (string? (nth f 2)))
+    (let [[_ f-name docstring args & body] f]
+      {:f-name f-name
+       :docstring docstring
+       :args args
+       :body body})
+    (let [[_ f-name args & body] f]
+      {:f-name f-name
+       :args args
+       :body body})))
+
 (defn- load-defs [x]
   (if (list? x)
-    (let [[op id binding & body] x]
+    (let [[op] x]
       (condp = op
-        'defn {id `(~'fn ~binding ~(last body))}
-        'def {id binding}
+        'defn (let [{:keys [f-name args body]} (parse-defn-form x)]
+                {f-name `(~'fn ~args ~(last body))})
+        'def (let [[_ id binding] x]
+               {id binding})
         'VARIABLE {op (rest x)}
         nil))))
 

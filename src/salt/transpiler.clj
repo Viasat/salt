@@ -3,6 +3,7 @@
   (:require [clojure.string :as string]
             [clojure.set :as set]
             [salt.lang :as lang]
+            [salt.simplify :as simplify]
             [salt.transpiler-state :as state]))
 
 ;; helper functions
@@ -892,16 +893,9 @@
 
 ;; TLA+ operators (i.e. functions)
 
-(defn- parse-defn-form [f]
-  (if (and (> (count f) 3) (string? (nth f 2)))
-    (let [[_ f-name docstring args & body] f]
-      {:f-name f-name, :docstring docstring, :args args, :body body})
-    (let [[_ f-name args & body] f]
-      {:f-name f-name, :args args, :body body})))
-
 (defmethod transpile-list 'defn [x]
   (if (= :TOP (state/context))
-    (let [{:keys [f-name docstring args body]} (parse-defn-form x)]
+    (let [{:keys [f-name docstring args body]} (simplify/parse-defn-form x)]
       (if (zero? (count args))
         (do
           ;; if there are no args to the function, just emit it in a straightforward fashion
