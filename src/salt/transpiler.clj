@@ -87,7 +87,7 @@
   ([x]
    (expr x false))
   ([x has-parens?]
-   (let [use-parens (and (list? x)
+   (let [use-parens (and (simplify/listy? x)
                          (not (#{'CHOOSE
                                  'Nat
                                  'first
@@ -119,7 +119,7 @@
        (emit ")")))))
 
 (defn- is-comment? [x]
-  (and (list? x)
+  (and (simplify/listy? x)
        (= 'comment (first x))))
 
 (defn- f-with-separator
@@ -174,8 +174,8 @@
      (throw (RuntimeException. (str "wrong number of args: " x))))))
 
 (defn- list-with-no-child-lists? [x]
-  (and (list? x)
-       (not (some list? (rest x)))
+  (and (simplify/listy? x)
+       (not (some simplify/listy? (rest x)))
        (or (not (= '= (first x)))
            (not (= '== (first x))))))
 
@@ -344,7 +344,7 @@
 (defn- pull-up-ands [children]
   (->> children
        (mapcat (fn [child]
-                 (if (and (list? child)
+                 (if (and (simplify/listy? child)
                           (= (first child) 'and))
                    (rest child)
                    [child])))))
@@ -490,7 +490,7 @@
 
 (defmethod transpile-list 'not [x]
   (if (= 1 (count (rest x)))
-    (if (and (list? (second x))
+    (if (and (simplify/listy? (second x))
              (= 'contains? (first (second x))))
       (reverse-binary-operator (second x) "\\notin")
       (unary-operator x "~" false))
@@ -965,7 +965,7 @@
                                     (apply list (into [s] (repeat invocation-arg-count '_))))
                                   s)))
                             (range))
-                       (f-with-separator #(if (list? %)
+                       (f-with-separator #(if (simplify/listy? %)
                                             (do (emit (first %))
                                                 (emit "(")
                                                 (f-with-separator emit "" ", " "" (rest %))
@@ -977,7 +977,7 @@
               (state/tab)
               (emit " ==")
               (state/untab)
-              (if (or (list? (first body))
+              (if (or (simplify/listy? (first body))
                       (set? (first body))
                       (vector? (first body))
                       (.contains (string/trim new-text) "\n"))
@@ -1062,7 +1062,7 @@
 (defn- transpile [x]
   (let [c-f (cond (vector? x) transpile-vector
                   (set? x) transpile-set
-                  (list? x) invocation
+                  (simplify/listy? x) invocation
                   (number? x) transpile-number
                   (string? x) transpile-string
                   (symbol? x) transpile-symbol
@@ -1071,7 +1071,6 @@
                   (map? x) transpile-map
                   (keyword? x) transpile-keyword
                   :else (throw (RuntimeException. (str "unknown form: '" x "'"))))]
-    (when (list? x))
     (c-f x)))
 
 ;; entry points for testing

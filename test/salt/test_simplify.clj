@@ -670,7 +670,23 @@
        (let [m {}
              c (simplify/make-context '[a] m)]
          (->> '(not= (EXCEPT a [:f] "done") {:f "done"})
-              (simplify/seval c))))))
+              (simplify/seval c)))))
+
+  (is (= '(= x {:a 2
+                :b 2})
+         (let [m {}
+               c (simplify/make-context '[x] m)]
+           (->> '(= x
+                    (EXCEPT {:a 1 :b 2} [:a] #(* % 2)))
+                (simplify/seval c)))))
+
+  (is (= '(= x {:a 3
+                :b 2})
+         (let [m {'q 3}
+               c (simplify/make-context '[x] m)]
+           (->> '(= x
+                    (EXCEPT {:a 1 :b 2} [:a] #(* q %)))
+                (simplify/seval c))))))
 
 (deftest test-simply-EXCEPT-combine-clauses
   (is (= '(= a {:f "init"})

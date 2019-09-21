@@ -73,7 +73,7 @@
 (defmacro EXCEPT [m & bindings]
   (let [[path new-value & more] bindings
         result (if (and (seq? new-value)
-                        (= 'fn* (first new-value)))
+                        (#{'fn* 'fn} (first new-value)))
                  `(EXCEPT-f ~m ~path ~new-value)
                  `(EXCEPT-f ~m ~path (fn [_#] ~new-value)))]
     (if (seq? more)

@@ -364,7 +364,7 @@
                              'union 'UNION 'X 'subset? 'SUBSET 'contains? 'Cardinality 'difference 'intersection
                              'first 'get* 'rest 'into 'count
                              'SubSeq 'conj 'Seq 'every?* 'DOMAIN
-                             'maps- 'EXCEPT} op)
+                             'maps-} op)
                           (let [[_ & args] e]
                             (if (and (zero? (count args))
                                      (#{'and 'or} op))
@@ -377,6 +377,29 @@
                                   (do
                                     (optionally-simulate context result)
                                     result)
+                                  (eval result)))))
+
+                          (= 'EXCEPT op)
+                          (let [[_ old path new] e
+                                [_ & args] e]
+                            (if (and (listy? new)
+                                     (#{'fn* 'fn} (first new)))
+                              (let [[_ [f-arg] & f-body] new
+                                    f-body (seval** (push-context context {f-arg f-arg}) (last f-body))
+                                    old (seval** context old)
+                                    path (seval** context path)
+                                    result `(EXCEPT ~old ~path (~'fn ~(if f-arg
+                                                                        [f-arg]
+                                                                        []) ~f-body))]
+                                (if (or (expr-with-free-vars? context f-body)
+                                        (expr-with-free-vars? context old)
+                                        (expr-with-free-vars? context path))
+                                  result
+                                  (eval result)))
+                              (let [evaled-args (vec (map (partial seval** context) args))
+                                    result (apply list op evaled-args)]
+                                (if (expr-with-symbol-references? context evaled-args)
+                                  result
                                   (eval result)))))
 
                           (= 'let op)
@@ -701,12 +724,12 @@
 ;;
 
 (defn simple=? [e]
-  (and (list? e)
+  (and (listy? e)
        (= (first e) '=)
        (symbol? (second e))))
 
 (defn simple=no-expr? [context e]
-  (and (list? e)
+  (and (listy? e)
        (= 3 (count e))
        (= (first e) '=)
        (symbol? (second e))
@@ -993,7 +1016,7 @@
        :body body})))
 
 (defn- load-defs [x]
-  (if (list? x)
+  (if (listy? x)
     (let [[op] x]
       (condp = op
         'defn (let [{:keys [f-name args body]} (parse-defn-form x)]
@@ -1013,12 +1036,12 @@
 ;;
 
 (defn simple-and? [e]
-  (and (list? e)
+  (and (listy? e)
        (= (first e) 'and)
        (every? simple=? (rest e))))
 
 (defn simple-or? [e]
-  (and (list? e)
+  (and (listy? e)
        (= (first e) 'or)
        (every? simple-and? (rest e))))
 
