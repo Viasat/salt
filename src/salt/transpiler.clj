@@ -878,7 +878,7 @@
       (emit "!")
       (f-with-separator emit-get-arg "" "" "" path)
       (emit " = ")
-      (if (and (list? new-value)
+      (if (and (simplify/listy? new-value)
                (= 'fn* (first new-value)))
         (transpile-lambda new-value)
         (transpile new-value))
