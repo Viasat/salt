@@ -103,7 +103,9 @@
                                  'count
                                  'EXCEPT
                                  'get*
-                                 'maps-} (first x)))
+                                 'maps-
+                                 'always-
+                                 'eventually-} (first x)))
                          (not (and (= 2 (count x))
                                    (keyword? (first x))))
                          (not (let [f (first x)]
@@ -589,7 +591,7 @@
 (defmethod transpile-list 'eventually- [x]
   (let [[_ f vars] x]
     (emit (str "<>"))
-    (transpile f)))
+    (expr f)))
 
 (defmethod transpile-list 'leads-to- [x]
   (let [[_ p q] x]

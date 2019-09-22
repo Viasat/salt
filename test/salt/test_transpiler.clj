@@ -737,6 +737,14 @@ line 3")
   (is (= (slurp (expected-file-name spec-name))
          (slurp (actual-file-name spec-name)))))
 
+(deftest test-eventually
+  (is (= "<>(200 = 100)"
+         (transpiler/transpile-single-form '(eventually- (= 200 100))) "<>(200 = 100)"))
+  (is (= "<>[](200 = 100)"
+         (transpiler/transpile-single-form '(eventually- (always- (= 200 100))))))
+  (is (= "[](<>(200 = 100))"
+         (transpiler/transpile-single-form '(always- (eventually- (= 200 100)))))))
+
 (defn- accept-all []
   (accept "FinalMatch")
   (accept "TwoPhase")
