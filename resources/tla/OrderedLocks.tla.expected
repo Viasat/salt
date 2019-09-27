@@ -1,0 +1,112 @@
+---------------------------- MODULE OrderedLocks ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANT
+    
+    \* set of all resource ids that exist
+     ResourceIds
+    
+    \* set of all the transaction IDs that can exist
+    , TransactionIds
+
+VARIABLE
+    
+    \* map from transaction id to transaction record
+     transactions
+    
+    
+        \* map from transaction id to a set of resource ids representing the resources locked by the transaction
+    , locks
+
+vars == << transactions, locks >>
+
+NewTransaction( tid, r-set ) ==
+    [tid |-> tid,
+     resources |-> r-set,
+     state |-> "created"]
+
+CreateTransaction == \E tid \in TransactionIds :
+        /\  ~(tid = transactions[tid].tid)
+        /\  \E r-set \in (SUBSET ResourceIds) :
+                /\  Cardinality( r-set ) > 0
+                /\  transactions' = [transactions EXCEPT ![tid] = 
+                                    NewTransaction(tid, r-set)]
+                /\  UNCHANGED << locks >>
+
+AcquireLock == \E tid \in TransactionIds :
+        LET t == transactions[tid]
+        IN  /\  tid = t.tid
+            /\  "created" = t.state
+            /\  \E rid \in t.resources :
+                    /\  ~(\E rid2 \in (t.resources \ locks[tid]) :
+                                rid2 < rid)
+                    /\  ~(\E tid2 \in TransactionIds :
+                                rid \in locks[tid2])
+                    /\  locks' = [locks EXCEPT ![tid] = @ \union {rid}]
+                    /\  UNCHANGED << transactions >>
+
+CompleteTransaction == \E tid \in TransactionIds :
+        LET t == transactions[tid]
+        IN  /\  tid = t.tid
+            /\  "created" = t.state
+            /\  t.resources = locks[tid]
+            /\  transactions' = [transactions EXCEPT ![tid]["state"] = 
+                                "completed"]
+            /\  UNCHANGED << locks >>
+
+ReleaseLock == \E tid \in TransactionIds :
+        LET t == transactions[tid]
+        IN  /\  tid = t.tid
+            /\  "completed" = t.state
+            /\  \E rid \in locks[tid] :
+                    /\  locks' = [locks EXCEPT ![tid] = @ \ {rid}]
+                    /\  UNCHANGED << transactions >>
+
+TypesOk == 
+    /\  DOMAIN locks = TransactionIds
+    /\  DOMAIN transactions = TransactionIds
+    /\  \A tid \in TransactionIds :
+            /\  locks[tid] \in (SUBSET ResourceIds)
+            /\  LET t == transactions[tid]
+                IN  \/  /\  {"tid"} = DOMAIN t
+                        /\  -1 = t.tid
+                    \/  /\  { "tid", "state", "resources" } = DOMAIN t
+                        /\  t.state \in { "created", "completed" }
+                        /\  tid = t.tid
+
+Init == 
+    /\  transactions = [x \in TransactionIds |-> [tid |-> -1]]
+    /\  locks = [x \in TransactionIds |-> {}]
+
+Next == 
+    \/  CreateTransaction
+    \/  AcquireLock
+    \/  CompleteTransaction
+    \/  ReleaseLock
+
+Spec == 
+    /\  Init
+    /\  [][Next]_vars
+    /\  WF_vars(CreateTransaction)
+    /\  WF_vars(AcquireLock)
+    /\  WF_vars(CompleteTransaction)
+    /\  WF_vars(ReleaseLock)
+
+Invariant == \A rid \in ResourceIds :
+        \/  \E t \in TransactionIds :
+                /\  rid \in locks[t]
+                /\  ~(\E t2 \in TransactionIds :
+                            /\  rid \in locks[t2]
+                            /\  t2 # t)
+        \/  ~(\E t \in TransactionIds :
+                    rid \in locks[t])
+
+End == \A tid \in TransactionIds :
+        LET t == transactions[tid]
+        IN  /\  tid = t.tid
+            /\  "completed" = t.state
+
+Termination == <>[](End)
+
+
+=============================================================================
