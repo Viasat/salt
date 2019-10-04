@@ -724,7 +724,7 @@ Access the values in a TLA+ record.
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(get* {:a 100, :b 200} :b)` | `[a \|-> 100,`<br>` b \|-> 200].b` |
+| code | `(get* {:a 100, :b 200} :b)` | `[a \|-> 100,`<br>` b \|-> 200]["b"]` |
 | result | `200` | `200` |
 
 Use 'DOMAIN' on maps to obtain the keys.

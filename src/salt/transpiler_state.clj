@@ -89,8 +89,9 @@
                       (assoc % :hanging-indent-stack (push-stack (:hanging-indent-stack %) indent-amount)))))
 
 (defn untab []
-  (swap! *c-state* #(assoc % :indent (max 0
-                                          (- (:indent %) 4)))))
+  (swap! *c-state* #(let [new-indent (max 0
+                                          (- (:indent %) 4))]
+                      (assoc % :indent new-indent))))
 
 (defn stop-hanging-indent []
   (swap! *c-state* #(assoc % :hanging-indent-stack (pop-stack (:hanging-indent-stack %)))))

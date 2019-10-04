@@ -26,7 +26,7 @@ NewTransaction( tid, r-set ) ==
      state |-> "created"]
 
 CreateTransaction == \E tid \in TransactionIds :
-        /\  ~(tid = transactions[tid].tid)
+        /\  ~(tid = transactions[tid]["tid"])
         /\  \E r-set \in (SUBSET ResourceIds) :
                 /\  Cardinality( r-set ) > 0
                 /\  transactions' = [transactions EXCEPT ![tid] = 
@@ -35,10 +35,10 @@ CreateTransaction == \E tid \in TransactionIds :
 
 AcquireLock == \E tid \in TransactionIds :
         LET t == transactions[tid]
-        IN  /\  tid = t.tid
-            /\  "created" = t.state
-            /\  \E rid \in t.resources :
-                    /\  ~(\E rid2 \in (t.resources \ locks[tid]) :
+        IN  /\  tid = t["tid"]
+            /\  "created" = t["state"]
+            /\  \E rid \in t["resources"] :
+                    /\  ~(\E rid2 \in (t["resources"] \ locks[tid]) :
                                 rid2 < rid)
                     /\  ~(\E tid2 \in TransactionIds :
                                 rid \in locks[tid2])
@@ -47,17 +47,17 @@ AcquireLock == \E tid \in TransactionIds :
 
 CompleteTransaction == \E tid \in TransactionIds :
         LET t == transactions[tid]
-        IN  /\  tid = t.tid
-            /\  "created" = t.state
-            /\  t.resources = locks[tid]
+        IN  /\  tid = t["tid"]
+            /\  "created" = t["state"]
+            /\  t["resources"] = locks[tid]
             /\  transactions' = [transactions EXCEPT ![tid]["state"] = 
                                 "completed"]
             /\  UNCHANGED << locks >>
 
 ReleaseLock == \E tid \in TransactionIds :
         LET t == transactions[tid]
-        IN  /\  tid = t.tid
-            /\  "completed" = t.state
+        IN  /\  tid = t["tid"]
+            /\  "completed" = t["state"]
             /\  \E rid \in locks[tid] :
                     /\  locks' = [locks EXCEPT ![tid] = @ \ {rid}]
                     /\  UNCHANGED << transactions >>
@@ -69,10 +69,10 @@ TypesOk ==
             /\  locks[tid] \in (SUBSET ResourceIds)
             /\  LET t == transactions[tid]
                 IN  \/  /\  {"tid"} = DOMAIN t
-                        /\  -1 = t.tid
+                        /\  -1 = t["tid"]
                     \/  /\  { "tid", "state", "resources" } = DOMAIN t
-                        /\  t.state \in { "created", "completed" }
-                        /\  tid = t.tid
+                        /\  t["state"] \in { "created", "completed" }
+                        /\  tid = t["tid"]
 
 Init == 
     /\  transactions = [x \in TransactionIds |-> [tid |-> -1]]
@@ -103,8 +103,8 @@ Invariant == \A rid \in ResourceIds :
 
 End == \A tid \in TransactionIds :
         LET t == transactions[tid]
-        IN  /\  tid = t.tid
-            /\  "completed" = t.state
+        IN  /\  tid = t["tid"]
+            /\  "completed" = t["state"]
 
 Termination == <>[](End)
 

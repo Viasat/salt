@@ -157,6 +157,33 @@ SetToTuple( s ) ==
 /\\  1 = 2"
          (transpiler/transpile-single-form '(and true (= 1 2))))))
 
+(deftest test-long-expression
+  (transpiler/reset)
+  (transpiler/transpile-form '(VARIABLE variable-101
+                                        variable-2
+                                        var3))
+  (is (= "VARIABLE variable-101, variable-2, var3
+
+MyFunction == \\E tid \\in {} :
+        LET t == 10
+        IN  /\\  tid = {}
+            /\\  \\E rid \\in {} :
+                    /\\  TRUE
+                    /\\  \\/  /\\  TRUE
+                            /\\  UNCHANGED << variable-101, variable-2 >>
+                        \\/  TRUE
+
+"
+         (transpiler/transpile-form '(defn MyFunction []
+                                       (E [tid #{}]
+                                          (let [t 10]
+                                            (and (= tid #{})
+                                                 (E [rid #{}]
+                                                    (and true
+                                                         (or (and true
+                                                                  (UNCHANGED [variable-101 variable-2]))
+                                                             true)))))))))))
+
 (deftest test-or
   (is (= "\\/  TRUE
 \\/  1 = 2"

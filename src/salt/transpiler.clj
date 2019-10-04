@@ -69,10 +69,11 @@
      :new-column new-column}))
 
 (defn- emit [s0]
-  (let [column (state/get-column)
-        {:keys [s new-column]} (emit-helper column (str s0))]
-    (state/emit* s)
-    (state/set-column new-column)))
+  (when (not (= "" s0))
+    (let [column (state/get-column)
+          {:keys [s new-column]} (emit-helper column (str s0))]
+      (state/emit* s)
+      (state/set-column new-column))))
 
 (defn- newline-before? []
   (let [t (state/get-text)
@@ -853,7 +854,7 @@
   (let [[_ m k] x]
     (transpile m)
     (if (keyword? k)
-      (emit (str "." (name k)))
+      (emit (str "[\"" (name k) "\"]"))
       (emit-get-arg k))))
 
 (defn- transpile-lambda [x]
