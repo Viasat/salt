@@ -637,7 +637,7 @@ multi line comment")
          true)
 
   (check "Produce a new vector containing all but the first item:"
-         '(rest [1 "a"])
+         '(rest* [1 "a"])
          ["a"]
          "Tail(<< 1, \"a\" >>)"
          "<<\"a\">>"

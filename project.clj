@@ -1,4 +1,4 @@
-(defproject salt "0.0.2"
+(defproject salt "0.0.3"
   :description "Converts a subset of clojure into TLA+"
   :dependencies [[org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/algo.generic "0.1.3"]

@@ -79,7 +79,6 @@ Identifiers from the Clojure language:
 ```not```
 ```or```
 ```require```
-```rest```
 ```select```
 ```str```
 ```subset?```
@@ -93,6 +92,7 @@ Identifiers from the Clojure language, whose semantics were modified to match TL
 ```map*```
 ```mod*```
 ```range*```
+```rest*```
 
 Identifiers that were added specifically to support transpiling, they are neither part of Clojure nor TLA+:
 

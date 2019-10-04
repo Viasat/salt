@@ -729,7 +729,7 @@
 (defmethod transpile-list 'first [x]
   (unary-operator x "Head" true))
 
-(defmethod transpile-list 'rest [x]
+(defmethod transpile-list 'rest* [x]
   (unary-operator x "Tail" true))
 
 (defmethod transpile-list 'into [x]

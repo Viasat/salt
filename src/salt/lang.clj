@@ -268,6 +268,13 @@
   [f coll]
   (fmap f coll))
 
+(defn rest*
+  "Modified to preserve vector results."
+  [coll]
+  (if (vector? coll)
+    (into [] (rest coll))
+    (throw (RuntimeException. (str "rest* not supported on object of type: " (class coll) " " coll)))))
+
 (defn every?* [p v]
   (when-not (and (vector? v)
                  (set p))

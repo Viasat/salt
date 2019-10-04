@@ -251,7 +251,7 @@ IN  CASE
   (is (= "Head(<< 10, 20, 30 >>)"
          (transpiler/transpile-single-form '(first [10 20 30]))))
   (is (= "Tail(<< 10, 20, 30 >>)"
-         (transpiler/transpile-single-form '(rest [10 20 30]))))
+         (transpiler/transpile-single-form '(rest* [10 20 30]))))
   (is (= "Append(<< 10, 20, 30 >>, 40)"
          (transpiler/transpile-single-form '(conj [10 20 30] 40))))
   (is (= "<< 10, 20, 30 >> \\o << 40, 50 >>"
@@ -597,7 +597,7 @@ line 3")
     (if (= t [])
       #{}
       (let [x (first t)]
-        (union #{x} (TupleToSet (rest t))))))
+        (union #{x} (TupleToSet (rest* t))))))
 
   (defn CacheFileHashSingle [f]
     (if (contains? validFiles f)

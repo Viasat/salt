@@ -79,7 +79,6 @@ Identifiers from the Clojure language:
 ```not```
 ```or```
 ```require```
-```rest```
 ```select```
 ```str```
 ```subset?```
@@ -93,6 +92,7 @@ Identifiers from the Clojure language, whose semantics were modified to match TL
 ```map*```
 ```mod*```
 ```range*```
+```rest*```
 
 Identifiers that were added specifically to support transpiling, they are neither part of Clojure nor TLA+:
 
@@ -601,7 +601,7 @@ Produce a new vector containing all but the first item:
 
 |  | salt | tla+ |
 | --- | --- | --- |
-| code | `(rest [1 "a"])` | `Tail(<< 1, "a" >>)` |
+| code | `(rest* [1 "a"])` | `Tail(<< 1, "a" >>)` |
 | result | `["a"]` | `<<"a">>` |
 
 Produce a new vector with one element changed:

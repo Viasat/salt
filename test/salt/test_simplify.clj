@@ -98,7 +98,7 @@
          (let [m '{foo (fn [r]
                          r)}]
            (->> '(foo false)
-                (simplify/seval* (simplify/make-context  [] m))))))
+                (simplify/seval* (simplify/make-context [] m))))))
 
   (is (= '(or (<= z' 50)
               (= x' 99)
@@ -290,11 +290,11 @@
   (is (= false
          (let [m {}]
            (->> '(comment "hello")
-                (simplify/seval* (simplify/make-context  [] m))))))
+                (simplify/seval* (simplify/make-context [] m))))))
   (is (= true
          (let [m {}]
            (->> '(= #{1 2} #{1 2})
-                (simplify/seval* (simplify/make-context  [] m))))))
+                (simplify/seval* (simplify/make-context [] m))))))
 
   (is (= '(or (let [x 1] (<= y' 1))
               (let [x 4] (<= y' 4))
@@ -326,9 +326,8 @@
                 (simplify/seval* (simplify/make-context [] m))))))
 
   (is (= true
-         (let [m {}]
-           (->> '(= (select (fn [x] (> x 10)) #{15 5}) #{15})
-                (simplify/seval* (simplify/make-context [] m))))))
+         (->> '(= (select (fn [x] (> x 10)) #{15 5}) #{15})
+              (simplify/seval* (simplify/make-context [] {})))))
 
   (is (= true
          (let [m {}]
@@ -386,6 +385,87 @@
                     (E [m #{3 4}]
                        [t m]))
                 (#'simplify/seval** (simplify/make-context v m)))))))
+
+(deftest test-recursive-function
+  (is (= 1
+         (let [m '{fib (fn [x]
+                         (if (<= x 1)
+                           1
+                           (+ (fib (- x 1)) (fib (- x 2)))))}]
+           (->> '(fib 1)
+                (simplify/seval* (simplify/make-context [] m))))))
+
+  (is (= 2
+         (let [m '{fib (fn [x]
+                         (if (<= x 1)
+                           1
+                           (+ (fib (- x 1)) (fib (- x 2)))))}]
+           (->> '(fib 2)
+                (simplify/seval* (simplify/make-context [] m))))))
+
+  (is (= 3
+         (let [m '{fib (fn [x]
+                         (if (<= x 1)
+                           1
+                           (+ (fib (- x 1)) (fib (- x 2)))))}]
+           (->> '(fib 3)
+                (simplify/seval* (simplify/make-context [] m))))))
+
+  (is (= '(fib q)
+         (let [m '{fib (fn [x]
+                         (if (<= x 1)
+                           1
+                           (+ (fib (- x 1)) (fib (- x 2)))))}]
+           (->> '(fib q)
+                (simplify/seval* (simplify/make-context ['q] m))))))
+
+  (is (= #{8}
+         (let [m '{fib (fn [x]
+                         (if (<= x 1)
+                           1
+                           (+ (fib (- x 1)) (fib (- x 2)))))}]
+           (->> '(map* (fn [x] (fib x)) #{5})
+                (simplify/seval* (simplify/make-context [] m))))))
+
+  (is (= '#{1}
+         (let [m '{Id (fn [x]
+                        x)}]
+           (->> '(map* (fn [j] (Id j)) #{1})
+                (simplify/seval* (simplify/make-context [] m))))))
+
+  (is (= '#{2}
+         (let [m '{Id (fn [x]
+                        x)}]
+           (->> '(map* (fn [j] (Id (+ 1 j))) #{1})
+                (simplify/seval* (simplify/make-context [] m))))))
+
+  (is (= #{[10] [10 20]}
+         (let [m '{SplitTuple (fn [left x i]
+                                (if (>= 0 i)
+                                  [left x]
+                                  (if (= 1 i)
+                                    [(into left [(first x)])
+                                     (rest* x)]
+                                    (if (> i (count x))
+                                      [(into left x)
+                                       []]
+                                      (SplitTuple (into left [(first x)])
+                                                  (rest* x)
+                                                  (- i 1))))))
+                   TupleSplits (fn [x]
+                                 (map* (fn [j] (SplitTuple [] x j)) (range* 1 (count x))))
+                   Lefts (fn [x]
+                           (map* (fn [x] (first x)) (TupleSplits x)))}]
+           (->> '(Lefts [10 20])
+                (simplify/seval* (simplify/make-context [] m))))))
+
+  (is (= '#{2}
+         (let [m '{fib (fn [x]
+                         (if (<= x 1)
+                           1
+                           (+ (fib (- x 1)) (fib (- x 2)))))}]
+           (->> '(map* (fn [x] (+ 1 x)) #{(fib 1)})
+                (simplify/seval* (simplify/make-context ['q] m)))))))
 
 (deftest test-3
   (is (= '(or (and (= badGuyStatus' "alive")

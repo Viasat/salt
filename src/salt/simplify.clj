@@ -154,6 +154,34 @@
      (keyword? e) false
      (boolean? e) false)))
 
+;;;;
+
+(declare expr-with-unbound-symbol-references?)
+
+(defn- collection-with-unbound-symbol-references? [context e]
+  (->> e
+       (map (partial expr-with-unbound-symbol-references? context))
+       (some identity)))
+
+(defn- map-with-unbound-symbol-references? [context e]
+  (or (collection-with-unbound-symbol-references? context (keys e))
+      (collection-with-unbound-symbol-references? context (vals e))))
+
+(defn- expr-with-unbound-symbol-references? [context e]
+  (boolean
+   (cond
+     (listy? e) (collection-with-unbound-symbol-references? context e)
+     (symbol? e) (let [result (resolve-in-context context e true)]
+                   (or (nil? result)
+                       (= result e)))
+     (set? e) (collection-with-unbound-symbol-references? context e)
+     (map? e) (map-with-unbound-symbol-references? context e)
+     (vector? e) (collection-with-unbound-symbol-references? context e)
+     (string? e) false
+     (number? e) false
+     (keyword? e) false
+     (boolean? e) false)))
+
 ;;
 
 (defn- process-map [f e]
@@ -362,7 +390,7 @@
                              'and 'or 'not
                              'Nat 'range*
                              'union 'UNION 'X 'subset? 'SUBSET 'contains? 'Cardinality 'difference 'intersection
-                             'first 'get* 'rest 'into 'count
+                             'first 'get* 'rest* 'into 'count
                              'SubSeq 'conj 'Seq 'every?* 'DOMAIN
                              'maps-} op)
                           (let [[_ & args] e]
@@ -445,7 +473,7 @@
                           (let [[_ vs] e]
                             (seval** context (eval-CHANGED- context vs)))
 
-                          (#{'select 'map* 'SelectSeq} op)
+                          (#{'select 'SelectSeq} op)
                           (let [[op [_ [f-arg] & f-body] s] e
                                 f-body (seval** (push-context context {f-arg f-arg}) (last f-body))
                                 s (seval** context s)
@@ -455,6 +483,18 @@
                               result
                               (eval result)))
 
+                          (= 'map* op)
+                          (let [[op [_ [f-arg] & f-body] s] e
+                                f-body (seval** (push-context context {f-arg f-arg}) (last f-body))
+                                s (seval** context s)
+                                result `(~op (~'fn [~f-arg] ~f-body) ~s)]
+                            (if (or (expr-with-free-vars? context f-body)
+                                    (expr-with-free-vars? context s))
+                              result
+                              (if (not (expr-with-free-vars? context s))
+                                (map* #(seval** (push-context context {f-arg %}) f-body) s)
+                                (eval result))))
+
                           (= 'comment op)
                           false
 
@@ -463,7 +503,7 @@
                             (throw (RuntimeException. (str "Cannot resolve nil: " [e (class e)])))
                             (let [args (vec (map (partial seval** context) (rest e)))
                                   result (apply list (first e) args)]
-                              (if (expr-with-free-vars? context args)
+                              (if (expr-with-unbound-symbol-references? context args)
                                 result
                                 (let [[sub-context f-form] (resolve-custom-f context op)]
                                   (when (nil? f-form)
