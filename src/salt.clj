@@ -7,8 +7,12 @@
   "Create a context in which constants are defined as in 'constants' and variables are defined as in
   'state', then evaluate the 'body'. All constants and variables must be defined."
   [constants state & body]
-  `(with-redefs ~(into [] (mapcat identity (merge constants state)))
-     ~@body))
+  (let []
+    `(let [binding-map# (merge ~constants ~state)]
+       (with-redefs-fn (zipmap (map resolve (keys binding-map#))
+                               (vals binding-map#))
+         (fn []
+           ~@body)))))
 
 (defmacro simplify
   "Read a salt source file, create a context in which constants are defined as per the 'constants'
@@ -23,7 +27,7 @@
   vector of symbols to omit from the resulting state representations. All constants must be
   defined. A subset of the variables can be defined."
   [src-file-name constants state e & arg]
-  `(simplify/simplify* ~src-file-name '~constants '~state '~e ~(first arg) '~(second arg)))
+  `(simplify/simplify* ~src-file-name ~constants ~state '~e ~(first arg) '~(second arg)))
 
 (defmacro with-rand-seed [n & body]
   `(binding [simplify/*rand-seed-atom* (atom ~n)]
@@ -31,7 +35,7 @@
 
 (defmacro simulate
   [src-file-name constants state n e & arg]
-  `(simplify/simulate* ~src-file-name '~constants '~state ~n '~e ~(first arg) '~(second arg)))
+  `(simplify/simulate* ~src-file-name ~constants ~state ~n '~e ~(first arg) '~(second arg)))
 
 (defn transpile
   "Read a salt source file, convert the contents to TLA+ tokens and return the results as a string."

@@ -23,12 +23,12 @@
             {rmState' {:rm1 "aborted"
                        :rm2 "working"}}}
          (salt/simplify "test/TwoPhase.clj"
-                        {RM #{:rm1 :rm2}}
-                        {rmState {:rm1 "working"
-                                  :rm2 "working"}
-                         tmState "init"
-                         tmPrepared #{}
-                         msgs #{}}
+                        '{RM #{:rm1 :rm2}}
+                        '{rmState {:rm1 "working"
+                                   :rm2 "working"}
+                          tmState "init"
+                          tmPrepared #{}
+                          msgs #{}}
                         (TPNext)
                         :delta)))
 
@@ -49,13 +49,13 @@
              rmState' {:rm1 "prepared"
                        :rm2 "prepared"}}}
          (salt/simplify "test/TwoPhase.clj"
-                        {RM #{:rm1 :rm2}}
-                        {rmState {:rm1 "prepared"
-                                  :rm2 "working"}
-                         tmState "init"
-                         tmPrepared #{}
-                         msgs #{{:type "Prepared"
-                                 :rm :rm1}}}
+                        '{RM #{:rm1 :rm2}}
+                        '{rmState {:rm1 "prepared"
+                                   :rm2 "working"}
+                          tmState "init"
+                          tmPrepared #{}
+                          msgs #{{:type "Prepared"
+                                  :rm :rm1}}}
                         (TPNext)
                         :delta)))
 
@@ -83,15 +83,15 @@
                     (= msgs #{{:type "Prepared"
                                :rm :rm2}}))))
          (salt/simplify "test/TwoPhase.clj"
-                        {RM #{:rm1 :rm2}}
-                        {msgs' #{{:type "Prepared"
-                                  :rm :rm1}
-                                 {:type "Prepared"
-                                  :rm :rm2}}
-                         rmState' {:rm1 "prepared"
-                                   :rm2 "prepared"}
-                         tmState' "init"
-                         tmPrepared' #{}}
+                        '{RM #{:rm1 :rm2}}
+                        '{msgs' #{{:type "Prepared"
+                                   :rm :rm1}
+                                  {:type "Prepared"
+                                   :rm :rm2}}
+                          rmState' {:rm1 "prepared"
+                                    :rm2 "prepared"}
+                          tmState' "init"
+                          tmPrepared' #{}}
                         (TPNext)
                         :delta)))
 
@@ -107,11 +107,11 @@
             {rmState {:rm1 "prepared"
                       :rm2 "working"}}}
          (salt/simplify "test/TwoPhase.clj"
-                        {RM #{:rm1 :rm2}}
-                        {msgs #{{:type "Prepared", :rm :rm2}}
-                         rmState' {:rm1 "prepared", :rm2 "prepared"}
-                         tmState' "init"
-                         tmPrepared #{}}
+                        '{RM #{:rm1 :rm2}}
+                        '{msgs #{{:type "Prepared", :rm :rm2}}
+                          rmState' {:rm1 "prepared", :rm2 "prepared"}
+                          tmState' "init"
+                          tmPrepared #{}}
                         (TPNext)
                         :delta))))
 

@@ -8,39 +8,39 @@
 
 (deftest test-types
   (is (salt/evaluate {}
-                     {turn "x"
-                      board [["_" "_" "_"]
-                             ["_" "_" "_"]
-                             ["_" "_" "_"]]}
+                     '{turn "x"
+                       board [["_" "_" "_"]
+                              ["_" "_" "_"]
+                              ["_" "_" "_"]]}
                      (TypesOk)))
 
   (is (salt/evaluate {}
-                     {turn "o"
-                      board [["x" "_" "_"]
-                             ["_" "o" "_"]
-                             ["_" "_" "x"]]}
+                     '{turn "o"
+                       board [["x" "_" "_"]
+                              ["_" "o" "_"]
+                              ["_" "_" "x"]]}
                      (TypesOk)))
 
   (is (not (salt/evaluate {}
-                          {turn "x"
-                           board [["x" "_" "q"]
-                                  ["_" "o" "_"]
-                                  ["_" "_" "x"]]}
+                          '{turn "x"
+                            board [["x" "_" "q"]
+                                   ["_" "o" "_"]
+                                   ["_" "_" "x"]]}
                           (TypesOk))))
 
   (is (not (salt/evaluate {}
-                          {turn "other"
-                           board [["x" "_" "_"]
-                                  ["_" "o" "_"]
-                                  ["_" "_" "x"]]}
+                          '{turn "other"
+                            board [["x" "_" "_"]
+                                   ["_" "o" "_"]
+                                   ["_" "_" "x"]]}
                           (TypesOk)))))
 
 (deftest test-Init
   (is (salt/evaluate {}
-                     {turn "x"
-                      board [["_" "_" "_"]
-                             ["_" "_" "_"]
-                             ["_" "_" "_"]]}
+                     '{turn "x"
+                       board [["_" "_" "_"]
+                              ["_" "_" "_"]
+                              ["_" "_" "_"]]}
                      (Init))))
 
 (deftest test-Move
@@ -56,10 +56,10 @@
             {board' [["_" "_" "_"] ["_" "_" "_"] ["_" "_" "x"]], turn' "o"}}
          (salt/simplify "test/Tic.clj"
                         {}
-                        {turn "x"
-                         board [["_" "_" "_"]
-                                ["_" "_" "_"]
-                                ["_" "_" "_"]]}
+                        '{turn "x"
+                          board [["_" "_" "_"]
+                                 ["_" "_" "_"]
+                                 ["_" "_" "_"]]}
                         (Next)
                         :delta)))
 
@@ -76,10 +76,10 @@
             {board' [["_" "_" "o"] ["_" "_" "_"] ["_" "_" "_"]], turn' "x"}}
          (salt/simplify "test/Tic.clj"
                         {}
-                        {turn "o"
-                         board [["_" "_" "_"]
-                                ["_" "_" "_"]
-                                ["_" "_" "_"]]}
+                        '{turn "o"
+                          board [["_" "_" "_"]
+                                 ["_" "_" "_"]
+                                 ["_" "_" "_"]]}
                         (Next)
                         :delta)))
 
@@ -108,10 +108,10 @@
                      ["o" "x" "_"]]}}
          (salt/simplify "test/Tic.clj"
                         {}
-                        {turn "o"
-                         board [["x" "_" "_"]
-                                ["_" "o" "_"]
-                                ["_" "x" "_"]]}
+                        '{turn "o"
+                          board [["x" "_" "_"]
+                                 ["_" "o" "_"]
+                                 ["_" "x" "_"]]}
                         (Next)
                         :delta
                         [turn]))))
@@ -119,24 +119,24 @@
 (deftest test-Winner
   (is (not
        (salt/evaluate {}
-                      {turn "o"
-                       board [["x" "_" "_"]
-                              ["_" "o" "_"]
-                              ["_" "x" "_"]]}
+                      '{turn "o"
+                        board [["x" "_" "_"]
+                               ["_" "o" "_"]
+                               ["_" "x" "_"]]}
                       (Winner))))
 
   (is (salt/evaluate {}
-                     {turn "o"
-                      board [["x" "x" "x"]
-                             ["_" "o" "_"]
-                             ["_" "x" "_"]]}
+                     '{turn "o"
+                       board [["x" "x" "x"]
+                              ["_" "o" "_"]
+                              ["_" "x" "_"]]}
                      (Winner)))
 
   (is (salt/evaluate {}
-                     {turn "o"
-                      board [["x" "x" "o"]
-                             ["_" "o" "_"]
-                             ["o" "x" "_"]]}
+                     '{turn "o"
+                       board [["x" "x" "o"]
+                              ["_" "o" "_"]
+                              ["o" "x" "_"]]}
                      (Winner))))
 
 ;; (run-tests)

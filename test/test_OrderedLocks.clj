@@ -10,50 +10,50 @@
 
 (deftest test-basic
   (is (salt/evaluate
-       {ResourceIds #{101 102}
-        TransactionIds #{0 1 2 3}}
-       {transactions {0 {:tid -1}
-                      1 {:tid -1}
-                      2 {:tid -1}
-                      3 {:tid -1}}
-        locks {0 #{}
-               1 #{}
-               2 #{}
-               3 #{}}}
+       '{ResourceIds #{101 102}
+         TransactionIds #{0 1 2 3}}
+       '{transactions {0 {:tid -1}
+                       1 {:tid -1}
+                       2 {:tid -1}
+                       3 {:tid -1}}
+         locks {0 #{}
+                1 #{}
+                2 #{}
+                3 #{}}}
        (TypesOk)))
 
   (is (salt/evaluate
-       {ResourceIds #{101 102}
-        TransactionIds #{0 1 2 3}}
-       {transactions {0 {:tid 0
-                         :resources #{101 102}
-                         :state "created"},
-                      1 {:tid 1
-                         :resources #{101 102}
-                         :state "completed"}
-                      2 {:tid -1}
-                      3 {:tid -1}}
-        locks {0 #{}
-               1 #{}
-               2 #{}
-               3 #{}}}
+       '{ResourceIds #{101 102}
+         TransactionIds #{0 1 2 3}}
+       '{transactions {0 {:tid 0
+                          :resources #{101 102}
+                          :state "created"},
+                       1 {:tid 1
+                          :resources #{101 102}
+                          :state "completed"}
+                       2 {:tid -1}
+                       3 {:tid -1}}
+         locks {0 #{}
+                1 #{}
+                2 #{}
+                3 #{}}}
        (TypesOk)))
 
   (is (not (salt/evaluate
-            {ResourceIds #{101 102}
-             TransactionIds #{0 1 2 3}}
-            {transactions {0 {:tid 0
-                              :resources #{101 102}
-                              :state "created"},
-                           1 {:tid 1
-                              :resources #{101 102}
-                              :state "completed99"}
-                           2 {:tid -1}
-                           3 {:tid -1}}
-             locks {0 #{}
-                    1 #{}
-                    2 #{}
-                    3 #{}}}
+            '{ResourceIds #{101 102}
+              TransactionIds #{0 1 2 3}}
+            '{transactions {0 {:tid 0
+                               :resources #{101 102}
+                               :state "created"},
+                            1 {:tid 1
+                               :resources #{101 102}
+                               :state "completed99"}
+                            2 {:tid -1}
+                            3 {:tid -1}}
+              locks {0 #{}
+                     1 #{}
+                     2 #{}
+                     3 #{}}}
             (TypesOk)))))
 
 (deftest test-Create
@@ -76,14 +76,14 @@
                                :resources #{101 102}
                                :state "created"}}}}
          (salt/simplify "test/OrderedLocks.clj"
-                        {ResourceIds #{101 102}
-                         TransactionIds #{0 1}}
-                        {transactions {0 {:tid 0
-                                          :resources #{101 102}
-                                          :state "created"}
-                                       1 {:tid -1}}
-                         locks {0 #{}
-                                1 #{}}}
+                        '{ResourceIds #{101 102}
+                          TransactionIds #{0 1}}
+                        '{transactions {0 {:tid 0
+                                           :resources #{101 102}
+                                           :state "created"}
+                                        1 {:tid -1}}
+                          locks {0 #{}
+                                 1 #{}}}
                         (CreateTransaction)
                         :delta))))
 
@@ -91,53 +91,53 @@
   (is (= '{locks' {0 #{101}
                    1 #{}}}
          (salt/simplify "test/OrderedLocks.clj"
-                        {ResourceIds #{101 102}
-                         TransactionIds #{0 1}}
-                        {transactions {0 {:tid 0
-                                          :resources #{101 102}
-                                          :state "created"}
-                                       1 {:tid -1}}
-                         locks {0 #{}
-                                1 #{}}}
+                        '{ResourceIds #{101 102}
+                          TransactionIds #{0 1}}
+                        '{transactions {0 {:tid 0
+                                           :resources #{101 102}
+                                           :state "created"}
+                                        1 {:tid -1}}
+                          locks {0 #{}
+                                 1 #{}}}
                         (AcquireLock)
                         :delta)))
 
   (is (= '{locks' {0 #{101 102}
                    1 #{}}}
          (salt/simplify "test/OrderedLocks.clj"
-                        {ResourceIds #{101 102}
-                         TransactionIds #{0 1}}
-                        {transactions {0 {:tid 0
-                                          :resources #{101 102}
-                                          :state "created"}
-                                       1 {:tid -1}}
-                         locks {0 #{101}
-                                1 #{}}}
+                        '{ResourceIds #{101 102}
+                          TransactionIds #{0 1}}
+                        '{transactions {0 {:tid 0
+                                           :resources #{101 102}
+                                           :state "created"}
+                                        1 {:tid -1}}
+                          locks {0 #{101}
+                                 1 #{}}}
                         (AcquireLock)
                         :delta)))
 
   (is (not (salt/simplify "test/OrderedLocks.clj"
-                          {ResourceIds #{101 102}
-                           TransactionIds #{0 1}}
-                          {transactions {0 {:tid 0
-                                            :resources #{101 102}
-                                            :state "created"}
-                                         1 {:tid -1}}
-                           locks {0 #{101 102}
-                                  1 #{}}}
+                          '{ResourceIds #{101 102}
+                            TransactionIds #{0 1}}
+                          '{transactions {0 {:tid 0
+                                             :resources #{101 102}
+                                             :state "created"}
+                                          1 {:tid -1}}
+                            locks {0 #{101 102}
+                                   1 #{}}}
                           (AcquireLock))))
 
   (is (not (salt/simplify "test/OrderedLocks.clj"
-                          {ResourceIds #{101 102}
-                           TransactionIds #{0 1}}
-                          {transactions {0 {:tid 0
-                                            :resources #{101 102}
-                                            :state "created"}
-                                         1 {:tid 1
-                                            :resources #{101}
-                                            :state "created"}}
-                           locks {0 #{}
-                                  1 #{101}}}
+                          '{ResourceIds #{101 102}
+                            TransactionIds #{0 1}}
+                          '{transactions {0 {:tid 0
+                                             :resources #{101 102}
+                                             :state "created"}
+                                          1 {:tid 1
+                                             :resources #{101}
+                                             :state "created"}}
+                            locks {0 #{}
+                                   1 #{101}}}
                           (AcquireLock)))))
 
 (deftest test-Complete
@@ -146,14 +146,14 @@
                              :state "completed"}
                           1 {:tid -1}}}
          (salt/simplify "test/OrderedLocks.clj"
-                        {ResourceIds #{101 102}
-                         TransactionIds #{0 1}}
-                        {transactions {0 {:tid 0
-                                          :resources #{101 102}
-                                          :state "created"}
-                                       1 {:tid -1}}
-                         locks {0 #{101 102}
-                                1 #{}}}
+                        '{ResourceIds #{101 102}
+                          TransactionIds #{0 1}}
+                        '{transactions {0 {:tid 0
+                                           :resources #{101 102}
+                                           :state "created"}
+                                        1 {:tid -1}}
+                          locks {0 #{101 102}
+                                 1 #{}}}
                         (CompleteTransaction)
                         :delta))))
 
@@ -163,81 +163,81 @@
             {locks' {0 #{101}
                      1 #{}}}}
          (salt/simplify "test/OrderedLocks.clj"
-                        {ResourceIds #{101 102}
-                         TransactionIds #{0 1}}
-                        {transactions {0 {:tid 0
-                                          :resources #{101 102}
-                                          :state "completed"}
-                                       1 {:tid -1}}
-                         locks {0 #{101 102}
-                                1 #{}}}
+                        '{ResourceIds #{101 102}
+                          TransactionIds #{0 1}}
+                        '{transactions {0 {:tid 0
+                                           :resources #{101 102}
+                                           :state "completed"}
+                                        1 {:tid -1}}
+                          locks {0 #{101 102}
+                                 1 #{}}}
                         (ReleaseLock)
                         :delta)))
 
   (is (not
        (salt/simplify "test/OrderedLocks.clj"
-                      {ResourceIds #{101 102}
-                       TransactionIds #{0 1}}
-                      {transactions {0 {:tid 0
-                                        :resources #{101 102}
-                                        :state "created"}
-                                     1 {:tid -1}}
-                       locks {0 #{101 102}
-                              1 #{}}}
+                      '{ResourceIds #{101 102}
+                        TransactionIds #{0 1}}
+                      '{transactions {0 {:tid 0
+                                         :resources #{101 102}
+                                         :state "created"}
+                                      1 {:tid -1}}
+                        locks {0 #{101 102}
+                               1 #{}}}
                       (ReleaseLock)))))
 
 (deftest test-Invariant
-  (is (salt/evaluate {ResourceIds #{101 102}
-                      TransactionIds #{0 1}}
-                     {transactions {0 {:tid 0
-                                       :resources #{101 102}
-                                       :state "completed"}
-                                    1 {:tid -1}}
-                      locks {0 #{101 102}
-                             1 #{}}}
+  (is (salt/evaluate '{ResourceIds #{101 102}
+                       TransactionIds #{0 1}}
+                     '{transactions {0 {:tid 0
+                                        :resources #{101 102}
+                                        :state "completed"}
+                                     1 {:tid -1}}
+                       locks {0 #{101 102}
+                              1 #{}}}
                      (Invariant)))
 
-  (is (not (salt/evaluate {ResourceIds #{101 102}
-                           TransactionIds #{0 1}}
-                          {transactions {0 {:tid 0
-                                            :resources #{101 102}
-                                            :state "completed"}
-                                         1 {:tid -1}}
-                           locks {0 #{101 102}
-                                  1 #{101}}}
+  (is (not (salt/evaluate '{ResourceIds #{101 102}
+                            TransactionIds #{0 1}}
+                          '{transactions {0 {:tid 0
+                                             :resources #{101 102}
+                                             :state "completed"}
+                                          1 {:tid -1}}
+                            locks {0 #{101 102}
+                                   1 #{101}}}
                           (Invariant)))))
 
 (deftest test-End
-  (is (not (salt/evaluate {ResourceIds #{101 102}
-                           TransactionIds #{0 1}}
-                          {transactions {0 {:tid 0
-                                            :resources #{101 102}
-                                            :state "completed"}
-                                         1 {:tid -1}}
-                           locks {0 #{101 102}
-                                  1 #{}}}
+  (is (not (salt/evaluate '{ResourceIds #{101 102}
+                            TransactionIds #{0 1}}
+                          '{transactions {0 {:tid 0
+                                             :resources #{101 102}
+                                             :state "completed"}
+                                          1 {:tid -1}}
+                            locks {0 #{101 102}
+                                   1 #{}}}
                           (End))))
-  (is (not (salt/evaluate {ResourceIds #{101 102}
-                           TransactionIds #{0 1}}
-                          {transactions {0 {:tid 0
-                                            :resources #{101 102}
-                                            :state "completed"}
-                                         1 {:tid 0
-                                            :resources #{101 102}
-                                            :state "completed"}}
-                           locks {0 #{101 102}
-                                  1 #{}}}
+  (is (not (salt/evaluate '{ResourceIds #{101 102}
+                            TransactionIds #{0 1}}
+                          '{transactions {0 {:tid 0
+                                             :resources #{101 102}
+                                             :state "completed"}
+                                          1 {:tid 0
+                                             :resources #{101 102}
+                                             :state "completed"}}
+                            locks {0 #{101 102}
+                                   1 #{}}}
                           (End))))
-  (is (not (salt/evaluate {ResourceIds #{101 102}
-                           TransactionIds #{0 1}}
-                          {transactions {0 {:tid 0
-                                            :resources #{101 102}
-                                            :state "completed"}
-                                         1 {:tid 0
-                                            :resources #{101 102}
-                                            :state "completed"}}
-                           locks {0 #{}
-                                  1 #{}}}
+  (is (not (salt/evaluate '{ResourceIds #{101 102}
+                            TransactionIds #{0 1}}
+                          '{transactions {0 {:tid 0
+                                             :resources #{101 102}
+                                             :state "completed"}
+                                          1 {:tid 0
+                                             :resources #{101 102}
+                                             :state "completed"}}
+                            locks {0 #{}
+                                   1 #{}}}
                           (End)))))
 
 (deftest test-Spec
