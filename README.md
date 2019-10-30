@@ -17,6 +17,9 @@ To use it:
 3. Once it is ready to be run in the TLA+ Toolbox, invoke the salt transpiler to emit TLA+ code.
 4. Run the resulting TLA+ specification in the TLA+ Toolbox to assess the temporal properties of the specification.
 
+The library is available on Clojars:
+```[org.clojars.david-mcneil/salt "0.0.4"]```
+
 In your salt specification file require the salt language as:
 
 ```(:require [salt.lang :refer :all])```
