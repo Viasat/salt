@@ -378,6 +378,11 @@
            (->> '(= (EXCEPT {:a 1, :b 2, :c 3} [:b] 20) {:a 1 :b 20 :c 3})
                 (simplify/seval* (simplify/make-context [] m))))))
 
+  (is (thrown-with-msg? RuntimeException #"Unexpected error"
+                        (let [m {}]
+                          (->> '(EXCEPT {:a 1, :b 2, :c 3} [:b])
+                               (simplify/seval* (simplify/make-context [] m))))))
+
   (is (= [1 4]
          (let [v []
                m {}]

@@ -428,7 +428,13 @@ H == DOMAIN Foo\n\n"
                                                      :x 102}
                                                     [:a :b] 200
                                                     [:a :c] #(* 2 %)
-                                                    [:x] #(* 3 %))))))
+                                                    [:x] #(* 3 %)))))
+
+  (is (thrown-with-msg? RuntimeException #"expected new value in EXCEPT expression"
+                        (transpiler/transpile-single-form '(EXCEPT {:a {:b 100
+                                                                        :c 101}
+                                                                    :x 102}
+                                                                   [:a :b])))))
 
 (deftest test-generate-set-of-maps-from-sets
   (is (= #{[4 3]

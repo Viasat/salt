@@ -872,6 +872,8 @@
     (state/tab)
     (loop [[path new-value & more] bindings
            counter 0]
+      (when (nil? new-value)
+        (throw (RuntimeException. (str "expected new value in EXCEPT expression: " x))))
       (when (zero? counter)
         (if (seq? more)
           (emit "\n")

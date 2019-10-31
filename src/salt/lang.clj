@@ -71,14 +71,16 @@
     (assoc-in* m path (new-value-f current-value))))
 
 (defmacro EXCEPT [m & bindings]
-  (let [[path new-value & more] bindings
-        result (if (and (seq? new-value)
-                        (#{'fn* 'fn} (first new-value)))
-                 `(EXCEPT-f ~m ~path ~new-value)
-                 `(EXCEPT-f ~m ~path (fn [_#] ~new-value)))]
-    (if (seq? more)
-      `(EXCEPT ~result ~@more)
-      `~result)))
+  (when (< (count bindings) 2)
+    (throw (RuntimeException. (str "expected new-value in EXPECT expression: " bindings))))
+  (let [[path new-value & more] bindings]
+    (let [result (if (and (seq? new-value)
+                          (#{'fn* 'fn} (first new-value)))
+                   `(EXCEPT-f ~m ~path ~new-value)
+                   `(EXCEPT-f ~m ~path (fn [_#] ~new-value)))]
+      (if (seq? more)
+        `(EXCEPT ~result ~@more)
+        `~result))))
 
 (defn- VARIABLE-f [v]
   (when (symbol? v)
